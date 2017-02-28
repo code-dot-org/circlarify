@@ -8,6 +8,18 @@ From the repository root, run `bundle install`.  Then you should be able to exec
 
 The tools will write to `~/.circlarify` to cache build information and avoid redundant requests to the Circle CI API.  Cached build JSON gets compressed; caching summary data for 10,000 builds requires about 115MB of disk space.
 
+## Common Options
+
+### Specifying build ranges
+All of the tools accept `--start [build-number]` and `--end [build-number]` options that let you specify a build range you'd like to operate on.
+
+* If both `--start` and `--end` are supplied, the tool will use all builds in that range (inclusive).
+* If only `--start` is given, the tool will use all builds from that build up to the most recent build.
+* If no range is supplied, the tool will use the 30 most recent builds.
+
+### Limiting results to one branch
+Most tools accept a `--branch [branch-name]` option that will further limit the selected build range, only including builds on the given branch.
+
 ## Tools
 
 ### compute-failure-rates
@@ -36,34 +48,6 @@ Date                  Total         Pipeline           Branch          staging
 2017-02-26      0/3 = 0.000      0/2 = 0.000      0/1 = 0.000      0/1 = 0.000
 2017-02-27   22/110 = 0.200     6/40 = 0.150    16/70 = 0.229     6/36 = 0.167
 2017-02-28      3/6 = 0.500      0/3 = 0.000      3/3 = 1.000      0/2 = 0.000
-
-```
-
-Usage:
-```
-Usage: ./compute-failure-rates [options]
-
-  Examples:
-
-    Default behavior, view stats for the last 30 builds:
-    ./compute-failure-rates
-
-    View stats for 30 builds ending at build 123:
-    ./compute-failure-rates --end 123
-
-    View stats for all builds since (and including) build 123:
-    ./compute-failure-rates --start 123
-
-    View status for builds in range 123-456 inclusive:
-    ./compute-failure-rates --start 123 --end 456
-
-  Options:
-        --start StartBuildNumber     Start searching at build #. Default: Get 30 builds.
-        --end EndBuildNumber         End searching at build #. Default: Latest build.
-        --group branchName,branchName
-                                     Add a column aggregating results for the listed branches.
-        --csv                        Display results in CSV format.
-    -h, --help                       Show this message.
 
 ```
 
@@ -105,34 +89,21 @@ ChromeLatestWin7_pixelation
  Tue, 28 Feb 2017=>{:flakiness=>0.20, :sample_size=>5}}
 ```
 
-Usage:
-```                                                  
-Usage: ./test-flakiness [options]
-        --start StartBuildNumber     Start searching at build #.
-        --end EndBuildNumber         End searching at build #.
-        --branch BranchName          Limit results to builds for one branch.
-        --test "Test name filter"    Regular expression for filtering results to a certain test.
-        --group-by Period            Select grouping period (day, week, month).
-    -h, --help                       Show this message.
-```
+Options:
+
+* `--test "Test name filter"` - Case-insenstive regular expression for filtering results to a certain test.
+* `--group-by (day|week|month)` - Group measurements by the given period for tracking flakiness changes over time.
 
 ### search-circle-builds
 Helper for grepping through build logs.
 
-Usage:
-```
-Usage: ./search-circle-builds [options]
-        --start StartBuildNumber     Start searching at build #.
-        --end EndBuildNumber         End searching at build #.
-        --grep "String to Search for"
-                                     Search for given string.
-        --whole-lines                Print entire lines of found strings in output.
-        --count                      Counts number of found strings in output.
-        --grep-container             Search given container # for grep string.
-        --grep-step                  Search given step (substring) for grep string.
-        --branch BranchName          Limit results to builds for one branch.
-    -h, --help                       Show this message.
-```
+Options:
+
+ * `--grep "String to Search for"` - Search for given string.
+ * `--whole-lines` - Print entire lines of found strings in output.
+ * `--count` - Counts number of found strings in output.
+ * `--grep-container [num]` - Search given container # for grep string.
+ * `--grep-step [name]` - Search given step (substring) for grep string.
 
 ### compute-timing-stats
 Figure out which Circle steps take the most time, in successful builds.
@@ -169,15 +140,7 @@ Downloading 30000..32037 |Time: 00:00:11 | === | Time: 00:00:11
 ```
 ![Sample plot](./img/plot_step_duration_example.png)
 
-Usage:
-```
-Usage: ./compute-timing-stats [options]
-  Options:
-        --start StartBuildNumber     Start searching at build #. Default: Get 30 builds.
-        --end EndBuildNumber         End searching at build #. Default: Latest build.
-        --branch BranchName          Limit results to builds for one branch.
-        --step StepPattern           Filter results to steps matching given pattern.
-        --container ContainerNum     Show results from a different container (default 0).
-        --plot                       Display results as a graph.
-    -h, --help                       Show this message.
-```
+Options:
+* `--step StepPattern` - Filter results to steps matching given pattern.
+* `--container [num]` - Show results from a different container (default 0).
+* `--plot` - Display results as a graph.
