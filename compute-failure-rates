@@ -33,7 +33,7 @@ OptionParser.new do |opts|
     View stats for all builds since (and including) build 123:
     ./compute-failure-rates --start 123
 
-    View status for builds in range 123-456 inclusive:
+    View stats for builds in range 123-456 inclusive:
     ./compute-failure-rates --start 123 --end 456
 
   Options:
