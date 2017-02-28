@@ -8,6 +8,18 @@ From the repository root, run `bundle install`.  Then you should be able to exec
 
 The tools will write to `~/.circlarify` to cache build information and avoid redundant requests to the Circle CI API.  Cached build JSON gets compressed; caching summary data for 10,000 builds requires about 115MB of disk space.
 
+## Common Options
+
+### Specifying build ranges
+All of the tools accept `--start [build-number]` and `--end [build-number]` options that let you specify a build range you'd like to operate on.
+
+* If both `--start` and `--end` are supplied, the tool will use all builds in that range (inclusive).
+* If only `--start` is given, the tool will use all builds from that build up to the most recent build.
+* If no range is supplied, the tool will use the 30 most recent builds.
+
+### Limiting results to one branch
+Most tools accept a `--branch [branch-name]` option that will further limit the selected build range, only including builds on the given branch.
+
 ## Tools
 
 ### compute-failure-rates
@@ -36,34 +48,6 @@ Date                  Total         Pipeline           Branch          staging
 2017-02-26      0/3 = 0.000      0/2 = 0.000      0/1 = 0.000      0/1 = 0.000
 2017-02-27   22/110 = 0.200     6/40 = 0.150    16/70 = 0.229     6/36 = 0.167
 2017-02-28      3/6 = 0.500      0/3 = 0.000      3/3 = 1.000      0/2 = 0.000
-
-```
-
-Usage:
-```
-Usage: ./compute-failure-rates [options]
-
-  Examples:
-
-    Default behavior, view stats for the last 30 builds:
-    ./compute-failure-rates
-
-    View stats for 30 builds ending at build 123:
-    ./compute-failure-rates --end 123
-
-    View stats for all builds since (and including) build 123:
-    ./compute-failure-rates --start 123
-
-    View status for builds in range 123-456 inclusive:
-    ./compute-failure-rates --start 123 --end 456
-
-  Options:
-        --start StartBuildNumber     Start searching at build #. Default: Get 30 builds.
-        --end EndBuildNumber         End searching at build #. Default: Latest build.
-        --group branchName,branchName
-                                     Add a column aggregating results for the listed branches.
-        --csv                        Display results in CSV format.
-    -h, --help                       Show this message
 
 ```
 
@@ -105,31 +89,58 @@ ChromeLatestWin7_pixelation
  Tue, 28 Feb 2017=>{:flakiness=>0.20, :sample_size=>5}}
 ```
 
-Usage:
-```                                                  
-Usage: ./test-flakiness [options]
-        --start StartBuildNumber     Start searching at build #
-        --end EndBuildNumber         End searching at build #
-        --branch BranchName          Limit results to builds for one branch
-        --test "Test name filter"    Regular expression for filtering results to a certain test.
-        --group-by Period            Select grouping period (day, week, month)
-    -h, --help                       Show this message
-```
+Options:
+
+* `--test "Test name filter"` - Case-insenstive regular expression for filtering results to a certain test.
+* `--group-by (day|week|month)` - Group measurements by the given period for tracking flakiness changes over time.
 
 ### search-circle-builds
 Helper for grepping through build logs.
 
-Usage:
+Options:
+
+ * `--grep "String to Search for"` - Search for given string.
+ * `--whole-lines` - Print entire lines of found strings in output.
+ * `--count` - Counts number of found strings in output.
+ * `--grep-container [num]` - Search given container # for grep string.
+ * `--grep-step [name]` - Search given step (substring) for grep string.
+
+### compute-timing-stats
+Figure out which Circle steps take the most time, in successful builds.
+
+This can give you a list of steps by average duration in descending order:
 ```
-Usage: ./search-circle-builds [options]
-        --start StartBuildNumber     Start searching at build #
-        --end EndBuildNumber         End searching at build #
-        --grep "String to Search for"
-                                     Search for given string
-        --whole-lines                Print entire lines of found strings in output
-        --count                      Counts number of found strings in output
-        --grep-container             Search given container # for grep string
-        --grep-step                  Search given step (substring) for grep string
-        --branch BranchName          Limit results to builds for one branch
-    -h, --help                       Show this message
+╰○ ./compute-timing-stats --branch staging --start 31000                                  
+Downloading 31000..32037 |Time: 00:00:05 | === | Time: 00:00:05
+Limited to branch: staging
+Average build time for 201 successful builds in range 31000..32037
+ 1:09:26
+
+Average build times for steps
+Duration Container Name
+   30:02         0 Wait for SSH
+   30:02         1 Wait for SSH
+   27:58         0 case $CIRCLE_NODE_INDEX in 0) bundle exec rake circle:run_tests ;; *) bundle exec rake circle:run_ui_tests ;; esac
+   21:52         1 case $CIRCLE_NODE_INDEX in 0) bundle exec rake circle:run_tests ;; *) bundle exec rake circle:run_ui_tests ;; esac
+    8:47         1 mispipe "bundle exec rake install" "ts '[%Y-%m-%d %H:%M:%S]'"
+    8:46         0 mispipe "bundle exec rake install" "ts '[%Y-%m-%d %H:%M:%S]'"
+    8:22         0 for i in 1 2; do mispipe "bundle exec rake build" "ts '[%Y-%m-%d %H:%M:%S]'" && break; done
+    8:21         1 for i in 1 2; do mispipe "bundle exec rake build" "ts '[%Y-%m-%d %H:%M:%S]'" && break; done
+    5:46         0 cd apps && npm run storybook:deploy
+    3:19         0 Restore source cache
+    2:08         1 bundle install --without ''
+    2:08         0 bundle install --without ''
 ```
+
+Or it can generate a graph of step durations over time.  This will attempt to pop open a browser window and render your data with [Google Charts](https://developers.google.com/chart/). Note: Graphing works for only one container at a time right now, and it's _highly_ recommended that you add a step pattern when graphing.
+
+```
+╰○ ./compute-timing-stats --branch staging --container 1 --start 30000 --step "rake install|rake build|run_tests" --plot
+Downloading 30000..32037 |Time: 00:00:11 | === | Time: 00:00:11
+```
+![Sample plot](./img/plot_step_duration_example.png)
+
+Options:
+* `--step StepPattern` - Filter results to steps matching given pattern.
+* `--container [num]` - Show results from a different container (default 0).
+* `--plot` - Display results as a graph.

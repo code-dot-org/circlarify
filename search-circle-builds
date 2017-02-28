@@ -32,33 +32,33 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./search-circle-builds [options]'
 
-  opts.on('--start StartBuildNumber', String, 'Start searching at build #') do |n|
+  opts.on('--start StartBuildNumber', String, 'Start searching at build #.') do |n|
     options[:start_build] = n.to_i
   end
-  opts.on('--end EndBuildNumber', String, 'End searching at build #') do |n|
+  opts.on('--end EndBuildNumber', String, 'End searching at build #.') do |n|
     options[:end_build] = n.to_i
   end
-  opts.on('--grep "String to Search for"', String, 'Search for given string') do |grep_string|
+  opts.on('--grep "String to Search for"', String, 'Search for given string.') do |grep_string|
     options[:grep_string] = grep_string
   end
-  opts.on('--whole-lines', TrueClass, 'Print entire lines of found strings in output') do |is_true|
+  opts.on('--whole-lines', TrueClass, 'Print entire lines of found strings in output.') do |is_true|
     options[:whole_lines] = is_true
   end
-  opts.on('--count', TrueClass, 'Counts number of found strings in output') do |is_true|
+  opts.on('--count', TrueClass, 'Counts number of found strings in output.') do |is_true|
     options[:count] = is_true
   end
-  opts.on('--grep-container ', String, 'Search given container # for grep string') do |grep_container|
+  opts.on('--grep-container ', String, 'Search given container # for grep string.') do |grep_container|
     options[:grep_container] = grep_container.to_i
   end
   options[:grep_container] ||= RUN_UI_TESTS_CONTAINER
-  opts.on('--grep-step ', String, 'Search given step (substring) for grep string') do |grep_step|
+  opts.on('--grep-step ', String, 'Search given step (substring) for grep string.') do |grep_step|
     options[:grep_step] = grep_step
   end
   options[:grep_step] ||= RUN_UI_TESTS_STEP_STRING
-  opts.on('--branch BranchName', String, 'Limit results to builds for one branch') do |branch_name|
+  opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
     options[:branch_name] = branch_name
   end
-  opts.on_tail('-h', '--help', 'Show this message') do
+  opts.on_tail('-h', '--help', 'Show this message.') do
     puts opts
     exit
   end
@@ -83,7 +83,7 @@ end
 
 fail_types_list = fail_types_to_check.map { |f| describe_fail_type(f) }.join "\n"
 puts "Checking builds #{build_range} for output:\n#{fail_types_list}"
-puts "Limiting to branch #{options[:branch_name]}" unless options[:branch_name].nil?
+puts "Limited to branch: #{options[:branch_name]}" unless options[:branch_name].nil?
 
 Parallel.each(build_range, in_processes: MAX_THREADS) do |build|
   fail_types_to_check.each do |known_fail|

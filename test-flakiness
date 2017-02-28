@@ -19,24 +19,24 @@ options = OpenStruct.new
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./test-flakiness [options]'
 
-  opts.on('--start StartBuildNumber', String, 'Start searching at build #') do |n|
+  opts.on('--start StartBuildNumber', String, 'Start searching at build #.') do |n|
     options[:start_build] = n.to_i
   end
-  opts.on('--end EndBuildNumber', String, 'End searching at build #') do |n|
+  opts.on('--end EndBuildNumber', String, 'End searching at build #.') do |n|
     options[:end_build] = n.to_i
   end
-  opts.on('--branch BranchName', String, 'Limit results to builds for one branch') do |branch_name|
+  opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
     options[:branch_name] = branch_name
   end
   opts.on('--test "Test name filter"', String, "Regular expression for filtering results to a certain test.") do |test_name_filter|
     options[:test_name_filter] = Regexp.new test_name_filter, Regexp::IGNORECASE
   end
   # Optional argument with keyword completion.
-  opts.on("--group-by Period", [:day, :week, :month], "Select grouping period (day, week, month)") do |t|
+  opts.on("--group-by Period", [:day, :week, :month], "Select grouping period (day, week, month).") do |t|
     options.group_by = t
   end
 
-  opts.on_tail('-h', '--help', 'Show this message') do
+  opts.on_tail('-h', '--help', 'Show this message.') do
     puts opts
     exit
   end
