@@ -30,10 +30,10 @@ def main(options)
         step['actions'].each do |action|
           next unless options[:container_num] == action['index'] || step['actions'].size == 1
           step_name = step['name']
-          step_duration = action['run_time_millis'] / 1000 # in seconds
+          step_duration_seconds = action['run_time_millis'] / 1000
           step_times[step_name] ||= []
-          step_times[step_name].push(step_duration)
-          build_steps[step_name] = step_duration
+          step_times[step_name].push(step_duration_seconds)
+          build_steps[step_name] = step_duration_seconds
         end
       end
 
