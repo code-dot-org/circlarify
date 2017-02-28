@@ -102,8 +102,10 @@ class CircleProject
   # Retrieve the set of build descriptor objects from the CircleCI API for this
   # project for the given range
   # @param range [Enumerable<Fixnum>] set of build numbers to retrieve
+  # @param ensure_full_summary [Boolean] If true, will not use build metadata
+  #        from the recent builds API, which omits certain fields (like 'steps')
   # @return [Array<build_descriptor:Object>] set of found build descriptors
-  def get_builds(range)
+  def get_builds(range, ensure_full_summary = false)
     raise ArgumentError unless range.is_a?(Enumerable)
 
     # Download the build information we need in parallel
@@ -111,7 +113,7 @@ class CircleProject
       range,
       progress: "Downloading #{range.min}..#{range.max}",
       in_processes: 50
-    ) {|n| get_build(n)}
+    ) {|n| get_build(n, ensure_full_summary)}
   end
 
   memoize :get_build

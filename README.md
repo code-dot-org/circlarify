@@ -133,3 +133,51 @@ Usage: ./search-circle-builds [options]
         --branch BranchName          Limit results to builds for one branch
     -h, --help                       Show this message
 ```
+
+### compute-timing-stats
+Figure out which Circle steps take the most time, in successful builds.
+
+This can give you a list of steps by average duration in descending order:
+```
+╰○ ./compute-timing-stats --branch staging --start 31000                                  
+Downloading 31000..32037 |Time: 00:00:05 | === | Time: 00:00:05
+Limiting to branch staging
+Average build time for 201 successful builds in range 31000..32037
+ 1:09:26
+
+Average build times for steps
+Duration Container Name
+   30:02         0 Wait for SSH
+   30:02         1 Wait for SSH
+   27:58         0 case $CIRCLE_NODE_INDEX in 0) bundle exec rake circle:run_tests ;; *) bundle exec rake circle:run_ui_tests ;; esac
+   21:52         1 case $CIRCLE_NODE_INDEX in 0) bundle exec rake circle:run_tests ;; *) bundle exec rake circle:run_ui_tests ;; esac
+    8:47         1 mispipe "bundle exec rake install" "ts '[%Y-%m-%d %H:%M:%S]'"
+    8:46         0 mispipe "bundle exec rake install" "ts '[%Y-%m-%d %H:%M:%S]'"
+    8:22         0 for i in 1 2; do mispipe "bundle exec rake build" "ts '[%Y-%m-%d %H:%M:%S]'" && break; done
+    8:21         1 for i in 1 2; do mispipe "bundle exec rake build" "ts '[%Y-%m-%d %H:%M:%S]'" && break; done
+    5:46         0 cd apps && npm run storybook:deploy
+    3:19         0 Restore source cache
+    2:08         1 bundle install --without ''
+    2:08         0 bundle install --without ''
+```
+
+Or it can generate a graph of step durations over time.  This will attempt to pop open a browser window and render your data with [Google Charts](https://developers.google.com/chart/). Note: Graphing works for only one container at a time right now, and it's _highly_ recommended that you add a step name filter when graphing.
+
+```
+╰○ ./compute-timing-stats --branch staging --container 1 --start 30000 --step "rake install|rake build|run_tests" --plot
+Downloading 30000..32037 |Time: 00:00:11 | === | Time: 00:00:11
+```
+![Sample plot](./img/plot_step_duration_example.png)
+
+Usage:
+```
+Usage: ./compute-timing-stats [options]
+  Options:
+        --start StartBuildNumber     Start searching at build #. Default: Get 30 builds.
+        --end EndBuildNumber         End searching at build #. Default: Latest build.
+        --branch BranchName          Limit results to builds for one branch
+        --step StepPattern           Filter results to steps matching given pattern
+        --container ContainerNum     Show results from a different container (default 0)
+        --plot                       Display results as a graph.
+    -h, --help                       Show this message
+```
