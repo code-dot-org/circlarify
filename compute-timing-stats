@@ -44,7 +44,9 @@ def main(options)
     end
 
     # Compute and sort average step times
-    average_step_times = step_times.map{|k, v| [k, v.inject(:+).to_f / v.size]}.sort{|a, b| b[1] <=> a[1]}
+    average_step_times = step_times.
+        map{|key, times| [key, mean(times)]}.
+        sort{|a, b| b[1] <=> a[1]}
 
     js_data = "[\n"
     js_data += "['Date', #{average_step_times.map{|k| JSON.generate(k[0])}.join(', ')}],\n"
@@ -145,6 +147,11 @@ def ms_to_readable_duration(ms)
   Time.at(ms/1000).utc.
       strftime("%k:%M:%S").
       gsub(/^ 0:0?/) {|match| ' ' * match.size}
+end
+
+# Get the average of the values in an array
+def mean(array)
+  array.inject(:+).to_f / array.size
 end
 
 # Begin here: Parse command line options
