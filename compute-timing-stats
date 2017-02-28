@@ -180,19 +180,19 @@ OptionParser.new do |opts|
   opts.on('--end EndBuildNumber', String, 'End searching at build #. Default: Latest build.') do |n|
     options[:end_build] = n.to_i
   end
-  opts.on('--branch BranchName', String, 'Limit results to builds for one branch') do |branch_name|
+  opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
     options[:branch_name] = branch_name
   end
-  opts.on('--step StepPattern', 'Filter results to steps matching given pattern') do |step_pattern|
+  opts.on('--step StepPattern', 'Filter results to steps matching given pattern.') do |step_pattern|
     options[:step_pattern] = Regexp.new(step_pattern, Regexp::IGNORECASE)
   end
-  opts.on('--container ContainerNum', 'Show results from a different container (default 0)') do |container_num|
+  opts.on('--container ContainerNum', 'Show results from a different container (default 0).') do |container_num|
     options[:container_num] = container_num.to_i
   end
   opts.on('--plot', 'Display results as a graph.') do
     options[:output_format] = :plot
   end
-  opts.on_tail('-h', '--help', 'Show this message') do
+  opts.on_tail('-h', '--help', 'Show this message.') do
     puts opts
     exit
   end

@@ -51,7 +51,7 @@ OptionParser.new do |opts|
   opts.on('--csv', 'Display results in CSV format.') do
     options[:output_format] = 'csv'
   end
-  opts.on_tail('-h', '--help', 'Show this message') do
+  opts.on_tail('-h', '--help', 'Show this message.') do
     puts opts
     exit
   end

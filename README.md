@@ -63,7 +63,7 @@ Usage: ./compute-failure-rates [options]
         --group branchName,branchName
                                      Add a column aggregating results for the listed branches.
         --csv                        Display results in CSV format.
-    -h, --help                       Show this message
+    -h, --help                       Show this message.
 
 ```
 
@@ -108,12 +108,12 @@ ChromeLatestWin7_pixelation
 Usage:
 ```                                                  
 Usage: ./test-flakiness [options]
-        --start StartBuildNumber     Start searching at build #
-        --end EndBuildNumber         End searching at build #
-        --branch BranchName          Limit results to builds for one branch
+        --start StartBuildNumber     Start searching at build #.
+        --end EndBuildNumber         End searching at build #.
+        --branch BranchName          Limit results to builds for one branch.
         --test "Test name filter"    Regular expression for filtering results to a certain test.
-        --group-by Period            Select grouping period (day, week, month)
-    -h, --help                       Show this message
+        --group-by Period            Select grouping period (day, week, month).
+    -h, --help                       Show this message.
 ```
 
 ### search-circle-builds
@@ -122,16 +122,16 @@ Helper for grepping through build logs.
 Usage:
 ```
 Usage: ./search-circle-builds [options]
-        --start StartBuildNumber     Start searching at build #
-        --end EndBuildNumber         End searching at build #
+        --start StartBuildNumber     Start searching at build #.
+        --end EndBuildNumber         End searching at build #.
         --grep "String to Search for"
-                                     Search for given string
-        --whole-lines                Print entire lines of found strings in output
-        --count                      Counts number of found strings in output
-        --grep-container             Search given container # for grep string
-        --grep-step                  Search given step (substring) for grep string
-        --branch BranchName          Limit results to builds for one branch
-    -h, --help                       Show this message
+                                     Search for given string.
+        --whole-lines                Print entire lines of found strings in output.
+        --count                      Counts number of found strings in output.
+        --grep-container             Search given container # for grep string.
+        --grep-step                  Search given step (substring) for grep string.
+        --branch BranchName          Limit results to builds for one branch.
+    -h, --help                       Show this message.
 ```
 
 ### compute-timing-stats
@@ -161,7 +161,7 @@ Duration Container Name
     2:08         0 bundle install --without ''
 ```
 
-Or it can generate a graph of step durations over time.  This will attempt to pop open a browser window and render your data with [Google Charts](https://developers.google.com/chart/). Note: Graphing works for only one container at a time right now, and it's _highly_ recommended that you add a step name filter when graphing.
+Or it can generate a graph of step durations over time.  This will attempt to pop open a browser window and render your data with [Google Charts](https://developers.google.com/chart/). Note: Graphing works for only one container at a time right now, and it's _highly_ recommended that you add a step pattern when graphing.
 
 ```
 ╰○ ./compute-timing-stats --branch staging --container 1 --start 30000 --step "rake install|rake build|run_tests" --plot
@@ -175,9 +175,9 @@ Usage: ./compute-timing-stats [options]
   Options:
         --start StartBuildNumber     Start searching at build #. Default: Get 30 builds.
         --end EndBuildNumber         End searching at build #. Default: Latest build.
-        --branch BranchName          Limit results to builds for one branch
-        --step StepPattern           Filter results to steps matching given pattern
-        --container ContainerNum     Show results from a different container (default 0)
+        --branch BranchName          Limit results to builds for one branch.
+        --step StepPattern           Filter results to steps matching given pattern.
+        --container ContainerNum     Show results from a different container (default 0).
         --plot                       Display results as a graph.
-    -h, --help                       Show this message
+    -h, --help                       Show this message.
 ```
