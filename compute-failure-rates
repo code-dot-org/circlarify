@@ -4,7 +4,7 @@
 
 require 'active_support/time'
 require 'optparse'
-require_relative './circle_project'
+require_relative './lib/circle_project'
 
 class Hash
   # Like Enumerable::map but returns a Hash instead of an Array

@@ -6,7 +6,7 @@ require 'optparse'
 require 'ostruct'
 require 'parallel'
 require 'ruby-progressbar'
-require_relative './circle_project'
+require_relative './lib/circle_project'
 require 'pp'
 
 Groupdate.time_zone = "Pacific Time (US & Canada)"
