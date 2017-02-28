@@ -6,7 +6,7 @@ require 'parallel'
 require 'zlib'
 
 GITHUB_PROJECT_API_BASE = 'https://circleci.com/api/v1.1/project/github'.freeze
-CACHE_DIRECTORY = File.expand_path('~/.circle-cli/builds').freeze
+CACHE_DIRECTORY = File.expand_path('~/.circlarify/builds').freeze
 
 # Abstracted access to a Circle CI project builds via their REST API
 class CircleProject

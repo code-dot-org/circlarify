@@ -6,6 +6,8 @@ We manage dependencies with [Bundler](http://bundler.io/) so please install that
 
 From the repository root, run `bundle install`.  Then you should be able to execute the tools directly.
 
+The tools will write to `~/.circlarify` to cache build information and avoid redundant requests to the Circle CI API.  Cached build JSON gets compressed; caching summary data for 10,000 builds requires about 115MB of disk space.
+
 ## Tools
 
 ### compute-failure-rates
