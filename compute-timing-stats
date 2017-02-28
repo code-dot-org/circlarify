@@ -121,7 +121,7 @@ def main(options)
     end
 
     # Write out averages
-    puts "Limiting to branch #{options[:branch_name]}" unless options[:branch_name].nil?
+    puts "Limited to branch: #{options[:branch_name]}" unless options[:branch_name].nil?
     puts "Average build time for #{build_durations.size} successful builds in range #{build_range}"
     puts ms_to_readable_duration(build_durations.inject(:+).to_f / build_durations.size)
 

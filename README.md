@@ -141,7 +141,7 @@ This can give you a list of steps by average duration in descending order:
 ```
 ╰○ ./compute-timing-stats --branch staging --start 31000                                  
 Downloading 31000..32037 |Time: 00:00:05 | === | Time: 00:00:05
-Limiting to branch staging
+Limited to branch: staging
 Average build time for 201 successful builds in range 31000..32037
  1:09:26
 
