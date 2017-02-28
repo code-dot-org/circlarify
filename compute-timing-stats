@@ -38,9 +38,9 @@ def main(options)
       end
 
       builds.push({
-          time: Time.parse(build['start_time']),
-          steps: build_steps
-                  })
+        time: Time.parse(build['start_time']),
+        steps: build_steps
+      })
     end
 
     # Compute and sort average step times
