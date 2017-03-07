@@ -3,6 +3,7 @@
 # For available options, run ./search-circle-builds -h
 
 require 'active_support/time'
+require 'launchy'
 require 'optparse'
 require_relative './lib/circle_project'
 
@@ -12,6 +13,8 @@ class Hash
     Hash[map {|k, v| yield k, v }]
   end
 end
+
+OUTPUT_DIRECTORY = File.expand_path('~/.circle-cli/output').freeze
 
 options = {
   output_format: 'human-readable',
@@ -48,8 +51,14 @@ OptionParser.new do |opts|
   opts.on('--group branchName,branchName', Array, 'Add a column aggregating results for the listed branches.') do |a|
     options[:custom_columns] << a
   end
+  opts.on('--branch branchName', String, 'ONLY show results for the given branch.') do |b|
+    options[:branch] = b
+  end
   opts.on('--csv', 'Display results in CSV format.') do
     options[:output_format] = 'csv'
+  end
+  opts.on('--plot', 'Display results as a graph') do
+    options[:output_format] = :plot
   end
   opts.on_tail('-h', '--help', 'Show this message.') do
     puts opts
@@ -87,6 +96,12 @@ columns = {
 options[:custom_columns].each do |branches|
   columns[branches.join(',')] = ->(builds) {builds.select{|i| branches.include?(i[:branch])}}
 end
+# Or only show one branch if we passed the branch option
+unless options[:branch].nil?
+  columns = {
+      options[:branch] => ->(builds) {builds.select {|i| i[:branch] == options[:branch]}}
+  }
+end
 
 # Compute map of stats for each date
 stats_by_date = builds_by_date.hmap do |date, build_infos_for_date|
@@ -115,7 +130,87 @@ if options[:output_format] == 'csv'
   stats_by_date.each do |date, stats|
     puts format("%s#{',%.3f' * columns.size}", date, *stats.map {|_, v| v[:failure_rate].round(3)})
   end
+
+elsif options[:output_format] == :plot
+
+  #
+  # Display a graph of failure rates over time
+  #
+
+  throw Error.new('Must provide a --branch to plot') if options[:branch].nil?
+
+  # Make sure weekends are included, and show up as zero
+  dates = stats_by_date.keys.map{|d| DateTime.strptime("#{d} -8", '%Y-%m-%d %z')}
+  ordered_stats = []
+  (dates.min..dates.max).each do |date|
+    if date.wday == 0 || date.wday == 6
+      ordered_stats << {
+          date: date,
+          total_builds: 0,
+          failed_builds: 0
+      }
+    else
+      branch_stats = stats_by_date[date.strftime('%Y-%m-%d')][options[:branch]]
+      ordered_stats << {
+          date: date,
+          total_builds: branch_stats[:total_builds],
+          failed_builds: branch_stats[:failed_builds]
+      }
+    end
+  end
+
+  js_data = "[\n"
+  js_data += "['Date', 'Failures', 'Successes'],\n"
+  ordered_stats.each do |stats|
+    # Represent date as a JS date, constructed with ms since the epoch
+    js_build_time = "new Date(#{stats[:date].to_f * 1000})"
+    js_failures = stats[:failed_builds]
+    js_successes = stats[:total_builds] - stats[:failed_builds]
+
+    js_data += "[#{js_build_time}, #{js_failures}, #{js_successes}],\n"
+  end
+  js_data += "]\n"
+
+  title = "Circle CI #{options[:branch]} builds by outcome for #{dates.min.strftime('%Y-%m-%d')}..#{dates.max.strftime('%Y-%m-%d')} (builds #{build_range})"
+
+  # Write out plot
+  # https://developers.google.com/chart/interactive/docs/gallery/areachart
+  FileUtils.mkdir_p OUTPUT_DIRECTORY
+  path = "#{OUTPUT_DIRECTORY}/failure-rates.html"
+  File.open(path, 'w') do |file|
+    file.write <<-FILE
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable(#{js_data});
+
+        var options = {
+          title: '#{title}',
+          hAxis: {title: 'Build date',  titleTextStyle: {color: '#333'}},
+          colors: ['#C40000', '#7FB900'],
+          isStacked: true
+        };
+
+        var chart = new google.visualization.SteppedAreaChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="chart_div" style="width: 100%; height: 900px;"></div>
+  </body>
+</html>
+    FILE
+  end
+  Launchy.open(path)
+
 else
+
   puts format("%-10s#{' %16s' * columns.size}", 'Date', *columns.keys.map {|k| k[0, 14]})
   stats_by_date.each do |date, stats|
     puts format(
