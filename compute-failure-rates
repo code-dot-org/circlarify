@@ -5,10 +5,10 @@
 require 'active_support/time'
 require 'launchy'
 require 'optparse'
-require_relative './lib/config'
+require_relative './lib/project'
 require_relative './lib/circle_project'
 
-config = Circlarify::Config.new
+project = Circlarify::Project.new
 
 class Hash
   # Like Enumerable::map but returns a Hash instead of an Array
@@ -64,11 +64,11 @@ OptionParser.new do |opts|
     options[:output_format] = :plot
   end
 
-  config.add_to_cli_options opts
+  project.provide_cli_options opts
 end.parse!
 
 begin
-  @project = CircleProject.new(config.repository)
+  @project = CircleProject.new(project.repository)
 rescue ArgumentError => e
   puts e.message
   exit(-1)

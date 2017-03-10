@@ -6,7 +6,7 @@ require 'optparse'
 require 'ostruct'
 require 'parallel'
 require 'ruby-progressbar'
-require_relative './lib/config'
+require_relative './lib/project'
 require_relative './lib/circle_project'
 require 'pp'
 
@@ -16,7 +16,7 @@ MAX_THREADS = 50
 CONTAINER = 1
 STEP_NAME = 'run_tests'
 
-config = Circlarify::Config.new
+project = Circlarify::Project.new
 
 options = OpenStruct.new
 OptionParser.new do |opts|
@@ -39,11 +39,11 @@ OptionParser.new do |opts|
     options.group_by = t
   end
 
-  config.add_to_cli_options opts
+  project.add_to_cli_options opts
 end.parse!
 
 begin
-  @project = CircleProject.new(config.repository)
+  @project = CircleProject.new(project.repository)
 rescue ArgumentError => e
   puts e.message
   exit(-1)

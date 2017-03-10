@@ -6,18 +6,18 @@ require 'launchy'
 require 'optparse'
 require 'time'
 require 'pp'
-require_relative './lib/config'
+require_relative './lib/project'
 require_relative './lib/circle_project'
 
 OUTPUT_DIRECTORY = File.expand_path('~/.circle-cli/output').freeze
 
-config = Circlarify::Config.new
+project = Circlarify::Project.new
 
 def main(options)
 
   # Download and format the information we need
   begin
-    @project = CircleProject.new(config.repository)
+    @project = CircleProject.new(project.repository)
   rescue ArgumentError => e
     puts e.message
     exit(-1)
@@ -208,7 +208,7 @@ OptionParser.new do |opts|
     options[:output_format] = :plot
   end
 
-  config.add_to_cli_options opts
+  project.provide_cli_options opts
 end.parse!
 
 main(options)

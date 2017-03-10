@@ -1,4 +1,5 @@
 require 'ostruct'
+require 'singleton'
 require 'yaml'
 require_relative './constants'
 
@@ -8,47 +9,21 @@ require_relative './constants'
 # Exposes those settings to the rest of the application
 #
 module Circlarify
+
   class Config
+    include Singleton
     USER_CONFIG_FILE_NAME = 'config.yml'
     USER_CONFIG_FILE_PATH = "#{Circlarify::LOCAL_FILES_PATH}/#{USER_CONFIG_FILE_NAME}".freeze
 
     def initialize
-      @arguments = OpenStruct.new
-    end
-
-    def repository
-      @arguments.repository || user_config.repository || raise(ArgumentError.new <<-ERR)
-  No repository specified.  Pass --repository <repository name> or configure one in #{USER_CONFIG_FILE_PATH}.
-      ERR
-    end
-
-    # Mix global configuration options into the option parser, with documentation.
-    # @param [OptionParser] opts
-    def add_to_cli_options(opts)
-      opts.separator <<-BANNER
-  
-    GLOBAL CONFIGURATION OPTIONS:
-      These options can all be passed on the command line, or they can be given
-      configured defaults by editing your local config file.
-      Your config file should be at #{USER_CONFIG_FILE_PATH}.
-
-      BANNER
-
-      opts.on('-r', '--repository RepositoryName', String, 'Which repository to use (e.g. code-dot-org/code-dot-org)') do |s|
-        @arguments.repository = s
-      end
-
-      opts.on_tail('-h', '--help', 'Show this message.') do
-        puts opts
-        exit
-      end
-    end
-
-    def user_config
-      @user_config ||= OpenStruct.new YAML.load_file(USER_CONFIG_FILE_PATH)
+      @user_config = OpenStruct.new YAML.load_file(USER_CONFIG_FILE_PATH)
     rescue Exception
       # Problem loading the user config? Just act like there isn't one there.
       @user_config = OpenStruct.new
+    end
+
+    def repository
+      @user_config.repository
     end
   end
 end

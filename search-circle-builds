@@ -4,7 +4,7 @@
 
 require 'optparse'
 require 'parallel'
-require_relative './lib/config'
+require_relative './lib/project'
 require_relative './lib/circle_project'
 
 RUN_UI_TESTS_STEP_STRING = 'run_tests'
@@ -29,7 +29,7 @@ KNOWN_FAIL_TYPES = [
   },
 ]
 
-config = Circlarify::Config.new
+project = Circlarify::Project.new
 
 options = {}
 OptionParser.new do |opts|
@@ -62,11 +62,11 @@ OptionParser.new do |opts|
     options[:branch_name] = branch_name
   end
 
-  config.add_to_cli_options opts
+  project.provide_cli_options opts
 end.parse!
 
 begin
-  @project = CircleProject.new(config.repository)
+  @project = CircleProject.new(project.repository)
 rescue ArgumentError => e
   puts e.message
   exit(-1)
