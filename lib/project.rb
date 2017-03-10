@@ -1,3 +1,4 @@
+require 'memoist'
 require 'ostruct'
 require_relative './circle_project'
 require_relative './config'
@@ -10,6 +11,8 @@ module Circlarify
   # a subset of builds we'll work with.
   #
   class Project
+    extend Memoist
+
     def initialize
       @arguments = OpenStruct.new
     end
@@ -18,6 +21,10 @@ module Circlarify
       @arguments.repository ||
           Config.instance.repository ||
           raise(ArgumentError.new("No repository specified.  Pass one (--repository) or configure a default in #{Config.USER_CONFIG_FILE_PATH}."))
+    end
+
+    def api
+      CircleProject.new(repository)
     end
 
     # @return [Range] A range of build numbers matching the options passed
@@ -52,8 +59,12 @@ module Circlarify
       first..last
     end
 
-    def api
-      @api ||= CircleProject.new(repository)
+    # @param ensure_full_summary [Boolean] If true, will not use build metadata
+    #        from the recent builds API, which omits certain fields (like 'steps')
+    # @return [Array<build_descriptor:Object>] set of found build descriptors
+    #   in given range.
+    def builds(ensure_full_summary = false)
+      api.get_builds(build_range, ensure_full_summary)
     end
 
     # Mix global configuration options into the option parser, with documentation.
@@ -97,5 +108,8 @@ module Circlarify
         exit
       end
     end
+
+    memoize :api
+    memoize :build_range
   end
 end

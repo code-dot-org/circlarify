@@ -6,7 +6,6 @@ require 'active_support/time'
 require 'launchy'
 require 'optparse'
 require_relative './lib/project'
-require_relative './lib/circle_project'
 
 project = Circlarify::Project.new
 
@@ -42,25 +41,25 @@ OptionParser.new do |opts|
   project.provide_cli_options opts
 end.parse!
 
+build_infos = []
 begin
-  @project = CircleProject.new(project.repository)
   build_range = project.build_range
+
+  # Download and format the build information we need
+  build_infos = project.builds.map do |build|
+    next if build['queued_at'].nil? || build['branch'].nil? || build['outcome'].nil?
+    {
+      build_num: build['build_num'],
+      queued_at: DateTime.parse(build['queued_at']),
+      branch: build['branch'],
+      # Possible build outcomes: :canceled, :infrastructure_fail, :timedout, :failed, :no_tests or :success
+      succeeded: build['outcome'] == 'success',
+      failed: build['outcome'] == 'failed' || build['outcome'] == 'timedout'
+    }
+  end
 rescue ArgumentError => e
   puts e.message
   exit(-1)
-end
-
-# Download and format the build information we need
-build_infos = @project.get_builds(build_range).map do |build|
-  next if build['queued_at'].nil? || build['branch'].nil? || build['outcome'].nil?
-  {
-    build_num: build['build_num'],
-    queued_at: DateTime.parse(build['queued_at']),
-    branch: build['branch'],
-    # Possible build outcomes: :canceled, :infrastructure_fail, :timedout, :failed, :no_tests or :success
-    succeeded: build['outcome'] == 'success',
-    failed: build['outcome'] == 'failed' || build['outcome'] == 'timedout'
-  }
 end
 
 # Group the builds by date
