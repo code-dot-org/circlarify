@@ -1,7 +1,9 @@
 module Circlarify
   class Build
+    # @param [CircleProject] api
     # @param [build_descriptor:Object] build_info
-    def initialize(build_info)
+    def initialize(api, build_info)
+      @api = api
       @info = build_info
     end
 
@@ -19,6 +21,14 @@ module Circlarify
 
     def branch?(branch_name)
       branch_name.nil? || (@info['branch'] == branch_name)
+    end
+
+    # @param [Fixnum] container The container ID #
+    # @param [String] step The build step to search for (e.g. "rake install")
+    # @return [Object, nil] full build output JSON object from CircleCI, or nil if error in retrieval
+    #   Example output JSON: https://gist.github.com/bcjordan/8349fbb1edc284839b42ae53ad19b68a
+    def get_log(container, step)
+      @api.get_log(build_num, container, step)
     end
 
     def outcome
@@ -51,5 +61,8 @@ module Circlarify
       @info['steps']
     end
 
+    def url
+      @api.build_url build_num
+    end
   end
 end

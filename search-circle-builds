@@ -5,7 +5,6 @@
 require 'optparse'
 require 'parallel'
 require_relative './lib/project'
-require_relative './lib/circle_project'
 
 RUN_UI_TESTS_STEP_STRING = 'run_tests'
 RUN_UI_TESTS_CONTAINER = 1
@@ -59,13 +58,6 @@ OptionParser.new do |opts|
   project.provide_cli_options opts
 end.parse!
 
-begin
-  @project = CircleProject.new(project.repository)
-rescue ArgumentError => e
-  puts e.message
-  exit(-1)
-end
-
 fail_types_to_check = KNOWN_FAIL_TYPES
 
 if options[:grep_string]
@@ -80,40 +72,44 @@ def describe_fail_type(f)
   "#{f[:search_string]} in container #{f[:container]} step #{f[:step_string]}"
 end
 
-fail_types_list = fail_types_to_check.map { |f| describe_fail_type(f) }.join "\n"
-puts "Checking builds #{project.build_range} for output:\n#{fail_types_list}"
-puts "Limited to branch: #{options[:branch_name]}" unless options[:branch_name].nil?
+begin
+  fail_types_list = fail_types_to_check.map { |f| describe_fail_type(f) }.join "\n"
+  puts "Checking builds #{project.build_range} for output:\n#{fail_types_list}"
+  puts "Limited to branch: #{options[:branch_name]}" unless options[:branch_name].nil?
 
-Parallel.each(project.builds, in_processes: MAX_THREADS) do |build|
-  fail_types_to_check.each do |known_fail|
-    # Skip this build if it's not on the requested branch
-    next unless build.branch? options[:branch_name]
+  Parallel.each(project.builds, in_processes: MAX_THREADS) do |build|
+    fail_types_to_check.each do |known_fail|
+      # Skip this build if it's not on the requested branch
+      next unless build.branch? options[:branch_name]
 
-    output = @project.get_log(build.build_num, known_fail[:container], known_fail[:step_string])
+      output = build.get_log(known_fail[:container], known_fail[:step_string])
 
-    begin
-      full_output_string = output[0]['message']
-      if full_output_string.include? known_fail[:search_string]
-        build_url = @project.build_url(build.build_num)
-        if options[:count]
-          count = full_output_string.split("\n").count do |line|
-            line.include? known_fail[:search_string]
+      begin
+        full_output_string = output[0]['message']
+        if full_output_string.include? known_fail[:search_string]
+          if options[:count]
+            count = full_output_string.split("\n").count do |line|
+              line.include? known_fail[:search_string]
+            end
+            puts "Build #{build.url} output contains #{count} of: #{known_fail[:search_string]}"
+          elsif options[:whole_lines]
+            lines = []
+            full_output_string.split("\n").each do |line|
+              lines << line if line.include? known_fail[:search_string]
+            end
+            puts "Build #{build.url} output contains lines:"
+            lines.each{|l| puts l}
+          else
+            puts "Build #{build.url} output contains: #{known_fail[:search_string]}"
           end
-          puts "Build #{build_url} output contains #{count} of: #{known_fail[:search_string]}"
-        elsif options[:whole_lines]
-          lines = []
-          full_output_string.split("\n").each do |line|
-            lines << line if line.include? known_fail[:search_string]
-          end
-          puts "Build #{build_url} output contains lines:"
-          lines.each{|l| puts l}
-        else
-          puts "Build #{build_url} output contains: #{known_fail[:search_string]}"
         end
+      rescue => _
       end
-    rescue => _
     end
   end
+rescue ArgumentError => e
+  puts e.message
+  exit(-1)
 end
 
 exit(0)

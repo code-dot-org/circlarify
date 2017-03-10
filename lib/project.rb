@@ -65,7 +65,7 @@ module Circlarify
     # @return [Array<build_descriptor:Object>] set of found build descriptors
     #   in given range.
     def builds(ensure_full_summary = false)
-      api.get_builds(build_range, ensure_full_summary).map{|info| Build.new(info)}
+      api.get_builds(build_range, ensure_full_summary).map{|info| Build.new(api, info)}
     end
 
     # Mix global configuration options into the option parser, with documentation.
