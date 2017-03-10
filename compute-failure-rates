@@ -26,31 +26,6 @@ options = {
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./compute-failure-rates [options]'
 
-  opts.separator <<-EXAMPLES
-
-  Examples:
-
-    Default behavior, view stats for the last 30 builds:
-    ./compute-failure-rates
-
-    View stats for 30 builds ending at build 123:
-    ./compute-failure-rates --end 123
-
-    View stats for all builds since (and including) build 123:
-    ./compute-failure-rates --start 123
-
-    View stats for builds in range 123-456 inclusive:
-    ./compute-failure-rates --start 123 --end 456
-
-  Options:
-  EXAMPLES
-
-  opts.on('--start StartBuildNumber', String, 'Start searching at build #. Default: Get 30 builds.') do |n|
-    options[:start_build] = n.to_i
-  end
-  opts.on('--end EndBuildNumber', String, 'End searching at build #. Default: Latest build.') do |n|
-    options[:end_build] = n.to_i
-  end
   opts.on('--group branchName,branchName', Array, 'Add a column aggregating results for the listed branches.') do |a|
     options[:custom_columns] << a
   end
@@ -69,13 +44,13 @@ end.parse!
 
 begin
   @project = CircleProject.new(project.repository)
+  build_range = project.build_range
 rescue ArgumentError => e
   puts e.message
   exit(-1)
 end
 
 # Download and format the build information we need
-build_range = @project.build_range_from_options(options)
 build_infos = @project.get_builds(build_range).map do |build|
   next if build['queued_at'].nil? || build['branch'].nil? || build['outcome'].nil?
   {
