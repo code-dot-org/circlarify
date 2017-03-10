@@ -6,4 +6,5 @@ gem 'groupdate'
 gem 'launchy'
 gem 'memoist'
 gem 'parallel'
+gem 'rubocop', require: false
 gem 'ruby-progressbar'
