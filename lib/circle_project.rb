@@ -4,10 +4,11 @@ require 'memoist'
 require 'open-uri'
 require 'parallel'
 require 'zlib'
+require_relative './constants'
 
 GITHUB_PROJECT_WEB_BASE = 'https://circleci.com/gh'
 GITHUB_PROJECT_API_BASE = 'https://circleci.com/api/v1.1/project/github'.freeze
-CACHE_DIRECTORY = File.expand_path('~/.circlarify/builds').freeze
+CACHE_DIRECTORY = "#{Circlarify::LOCAL_FILES_PATH}/builds".freeze
 
 # Abstracted access to a Circle CI project builds via their REST API
 class CircleProject

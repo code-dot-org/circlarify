@@ -16,7 +16,7 @@ MAX_THREADS = 50
 CONTAINER = 1
 STEP_NAME = 'run_tests'
 
-config = Config.new
+config = Circlarify::Config.new
 
 options = OpenStruct.new
 OptionParser.new do |opts|

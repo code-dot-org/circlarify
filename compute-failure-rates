@@ -8,7 +8,7 @@ require 'optparse'
 require_relative './lib/config'
 require_relative './lib/circle_project'
 
-config = Config.new
+config = Circlarify::Config.new
 
 class Hash
   # Like Enumerable::map but returns a Hash instead of an Array

@@ -29,7 +29,7 @@ KNOWN_FAIL_TYPES = [
   },
 ]
 
-config = Config.new
+config = Circlarify::Config.new
 
 options = {}
 OptionParser.new do |opts|

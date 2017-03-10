@@ -11,7 +11,7 @@ require_relative './lib/circle_project'
 
 OUTPUT_DIRECTORY = File.expand_path('~/.circle-cli/output').freeze
 
-config = Config.new
+config = Circlarify::Config.new
 
 def main(options)
 
