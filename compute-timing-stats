@@ -6,29 +6,27 @@ require 'launchy'
 require 'optparse'
 require 'time'
 require 'pp'
-require_relative './lib/circle_project'
+require_relative './lib/project'
 
 OUTPUT_DIRECTORY = File.expand_path('~/.circle-cli/output').freeze
 
-def main(options)
-
+def main(project, options)
   # Download and format the information we need
-  @project = CircleProject.new('code-dot-org/code-dot-org')
-  build_range = @project.build_range_from_options(options)
-
   if options[:output_format] == :plot
     builds = []
     step_times = {}
-    @project.get_builds(build_range, true).each do |build|
-      next if build['outcome'] != 'success'
-      next if build['steps'].nil? || build['build_time_millis'].nil?
-      next unless options[:branch_name].nil? || build['branch'] == options[:branch_name]
+    project.builds(true).each do |build|
+      next unless build.succeeded?
+      next if build.steps.nil? || build.build_time_millis.nil?
+      next unless build.branch? options[:branch_name]
 
       build_steps = {}
-      build['steps'].each do |step|
-        next unless options[:step_pattern].nil? || options[:step_pattern] =~ step['name']
+      build.steps.each do |step|
+        next unless options[:step_pattern].nil? ||
+                    options[:step_pattern] =~ step['name']
         step['actions'].each do |action|
-          next unless options[:container_num] == action['index'] || step['actions'].size == 1
+          next unless options[:container_num] == action['index'] ||
+                      step['actions'].size == 1
           step_name = step['name']
           step_duration_seconds = action['run_time_millis'] / 1000
           step_times[step_name] ||= []
@@ -37,24 +35,27 @@ def main(options)
         end
       end
 
-      builds.push({
-        time: Time.parse(build['start_time']),
+      builds.push(
+        time: build.start_time,
         steps: build_steps
-      })
+      )
     end
 
     # Compute and sort average step times
-    average_step_times = step_times.
-        map{|key, times| [key, mean(times)]}.
-        sort{|a, b| b[1] <=> a[1]}
+    average_step_times = step_times
+                         .map { |key, times| [key, mean(times)] }
+                         .sort { |a, b| b[1] <=> a[1] }
 
     js_data = "[\n"
-    js_data += "['Date', #{average_step_times.map{|k| JSON.generate(k[0])}.join(', ')}],\n"
+    column_names = average_step_times.map { |k| JSON.generate(k[0]) }
+    js_data += "['Date', #{column_names.join(', ')}],\n"
     builds.each do |build|
       # Represent date as a JS date, constructed with ms since the epoch
       js_build_time = "new Date(#{build[:time].to_f * 1000})"
       # Divide ms step durations by 1000, fill missing durations with zero
-      js_step_durations = average_step_times.map{|k| build[:steps][k[0]].nil? ? 0 : build[:steps][k[0]]}
+      js_step_durations = average_step_times.map do |k|
+        build[:steps][k[0]].nil? ? 0 : build[:steps][k[0]]
+      end
 
       js_data += "[#{js_build_time}, #{js_step_durations.join(', ')}],\n"
     end
@@ -105,17 +106,18 @@ def main(options)
     # Map of step key to a list of run times
     step_durations = {}
 
-    @project.get_builds(build_range, true).each do |build|
-      next if build['outcome'] != 'success'
-      next if build['steps'].nil? || build['build_time_millis'].nil?
-      next unless options[:branch_name].nil? || build['branch'] == options[:branch_name]
+    project.builds(true).each do |build|
+      next unless build.succeeded?
+      next if build.steps.nil? || build.build_time_millis.nil?
+      next unless build.branch? options[:branch_name]
 
-      build_durations.push(build['build_time_millis'])
+      build_durations.push(build.build_time_millis)
 
-      build['steps'].each do |step|
-        next unless options[:step_pattern].nil? || options[:step_pattern] =~ step['name']
+      build.steps.each do |step|
+        next unless options[:step_pattern].nil? ||
+                    options[:step_pattern] =~ step['name']
         step['actions'].each do |action|
-          step_key = format("%9d %s", action['index'], step['name'])
+          step_key = format('%9d %s', action['index'], step['name'])
           step_durations[step_key] ||= []
           step_durations[step_key].push(action['run_time_millis'])
         end
@@ -123,19 +125,23 @@ def main(options)
     end
 
     # Write out averages
-    puts "Limited to branch: #{options[:branch_name]}" unless options[:branch_name].nil?
-    puts "Average build time for #{build_durations.size} successful builds in range #{build_range}"
-    puts ms_to_readable_duration(build_durations.inject(:+).to_f / build_durations.size)
+    puts "Limited to branch: #{options[:branch_name]}" if options[:branch_name]
+    puts "Average build time for #{build_durations.size} "\
+      "successful builds in range #{project.build_range}"
+    puts ms_to_readable_duration(mean(build_durations))
 
     puts "\nAverage build times for steps"
-    puts format("%8s %9s %s", 'Duration', 'Container', 'Name')
-    step_durations.
-      map{|key, durations| [key, durations.inject(:+).to_f / durations.size]}.
-      sort{|a, b| b[1] <=> a[1]}.
-      each do |step|
-        puts format("%s %s", ms_to_readable_duration(step[1]), step[0])
+    puts format('%8s %9s %s', 'Duration', 'Container', 'Name')
+    step_durations
+      .map { |key, durations| [key, mean(durations)] }
+      .sort { |a, b| b[1] <=> a[1] }
+      .each do |step|
+        puts format('%s %s', ms_to_readable_duration(step[1]), step[0])
       end
   end
+rescue ArgumentError => e
+  puts e.message
+  exit(-1)
 end
 
 # Format a duration in milliseconds as an eight-character string,
@@ -144,9 +150,10 @@ end
 #   5,369,000 -> ' 1:29:29'
 #     272,000 -> '    4:32'
 def ms_to_readable_duration(ms)
-  Time.at(ms/1000).utc.
-      strftime("%k:%M:%S").
-      gsub(/^ 0:0?/) {|match| ' ' * match.size}
+  Time.at(ms / 1000)
+      .utc
+      .strftime('%k:%M:%S')
+      .gsub(/^ 0:0?/) { |match| ' ' * match.size }
 end
 
 # Get the average of the values in an array
@@ -155,6 +162,7 @@ def mean(array)
 end
 
 # Begin here: Parse command line options
+project = Circlarify::Project.new
 options = {
   container_num: 0,
   output_format: :human_readable
@@ -162,48 +170,25 @@ options = {
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./compute-timing-stats [options]'
 
-  opts.separator <<-EXAMPLES
-
-  Examples:
-
-    Default behavior, view stats for the last 30 builds:
-    ./compute-timing-stats
-
-    View stats for 30 builds ending at build 123:
-    ./compute-timing-stats --end 123
-
-    View stats for all builds since (and including) build 123:
-    ./compute-timing-stats --start 123
-
-    View stats for builds in range 123-456 inclusive:
-    ./compute-timing-stats --start 123 --end 456
-
-  Options:
-  EXAMPLES
-
-  opts.on('--start StartBuildNumber', String, 'Start searching at build #. Default: Get 30 builds.') do |n|
-    options[:start_build] = n.to_i
-  end
-  opts.on('--end EndBuildNumber', String, 'End searching at build #. Default: Latest build.') do |n|
-    options[:end_build] = n.to_i
-  end
-  opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
+  opts.on('--branch BranchName',
+          String,
+          'Limit results to builds for one branch.') do |branch_name|
     options[:branch_name] = branch_name
   end
-  opts.on('--step StepPattern', 'Filter results to steps matching given pattern.') do |step_pattern|
+  opts.on('--step StepPattern',
+          'Filter results to steps matching given pattern.') do |step_pattern|
     options[:step_pattern] = Regexp.new(step_pattern, Regexp::IGNORECASE)
   end
-  opts.on('--container ContainerNum', 'Show results from a different container (default 0).') do |container_num|
-    options[:container_num] = container_num.to_i
+  opts.on('--container ContainerNum',
+          'Show results from a different container (default 0).') do |num|
+    options[:container_num] = num.to_i
   end
   opts.on('--plot', 'Display results as a graph.') do
     options[:output_format] = :plot
   end
-  opts.on_tail('-h', '--help', 'Show this message.') do
-    puts opts
-    exit
-  end
+
+  project.provide_cli_options opts
 end.parse!
 
-main(options)
+main(project, options)
 exit(0)

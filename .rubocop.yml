@@ -1,0 +1,15 @@
+# Don't allow more complexity than we have, but don't really enforce it either
+Metrics/AbcSize:
+  Max: 121
+
+Metrics/BlockLength:
+  Max: 34
+
+Metrics/CyclomaticComplexity:
+  Max: 19
+
+Metrics/MethodLength:
+  Max: 105
+
+Metrics/PerceivedComplexity:
+  Max: 20

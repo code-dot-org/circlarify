@@ -6,129 +6,143 @@ require 'optparse'
 require 'ostruct'
 require 'parallel'
 require 'ruby-progressbar'
-require_relative './lib/circle_project'
+require_relative './lib/project'
 require 'pp'
 
-Groupdate.time_zone = "Pacific Time (US & Canada)"
+Groupdate.time_zone = 'Pacific Time (US & Canada)'
 
 MAX_THREADS = 50
 CONTAINER = 1
-STEP_NAME = 'run_tests'
+STEP_NAME = 'run_tests'.freeze
+
+project = Circlarify::Project.new
 
 options = OpenStruct.new
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./test-flakiness [options]'
 
-  opts.on('--start StartBuildNumber', String, 'Start searching at build #.') do |n|
-    options[:start_build] = n.to_i
-  end
-  opts.on('--end EndBuildNumber', String, 'End searching at build #.') do |n|
-    options[:end_build] = n.to_i
-  end
-  opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
+  opts.on(
+    '--branch BranchName',
+    String,
+    'Limit results to builds for one branch.'
+  ) do |branch_name|
     options[:branch_name] = branch_name
   end
-  opts.on('--test "Test name filter"', String, "Regular expression for filtering results to a certain test.") do |test_name_filter|
+
+  opts.on(
+    '--test "Test name filter"',
+    String,
+    'Regular expression for filtering results to a certain test.'
+  ) do |test_name_filter|
     options[:test_name_filter] = Regexp.new test_name_filter, Regexp::IGNORECASE
   end
+
   # Optional argument with keyword completion.
-  opts.on("--group-by Period", [:day, :week, :month], "Select grouping period (day, week, month).") do |t|
+  opts.on(
+    '--group-by Period',
+    [:day, :week, :month],
+    'Select grouping period (day, week, month).'
+  ) do |t|
     options.group_by = t
   end
 
-  opts.on_tail('-h', '--help', 'Show this message.') do
-    puts opts
-    exit
-  end
+  project.provide_cli_options opts
 end.parse!
 
-@project = CircleProject.new('code-dot-org/code-dot-org')
-build_range = @project.build_range_from_options(options)
+begin
+  filter = options.test_name_filter
+  puts [
+    'Computing flakiness rates',
+    filter ? "for test #{filter.source}" : nil,
+    options.branch_name ? "on branch #{options.branch_name}" : nil,
+    "in builds #{project.build_range}",
+    options.group_by ? "grouped by #{options.group_by}" : nil,
+    '(1.0 = 100% failures)'
+  ].compact.join(' ')
 
-puts [
-  "Computing flakiness rates",
-  options.test_name_filter ? "for test #{options.test_name_filter.source}" : nil,
-  options.branch_name ? "on branch #{options.branch_name}" : nil,
-  "in builds #{build_range}",
-  options.group_by ? "grouped by #{options.group_by}" : nil,
-  "(1.0 = 100% failures)"
-].reject{|x| x.nil?}.join(' ')
+  puts 'Scanning logs...'
+  download_progress_bar = ProgressBar.create(total: project.build_range.size)
 
-puts "Scanning logs..."
-download_progress_bar = ProgressBar.create(total: build_range.size)
-
-test_stats_rollup = {}
-# For now, limit this tool to searching for UI test failures
-Parallel.each(build_range, in_processes: MAX_THREADS, finish: lambda do |_, _, result|
-  download_progress_bar.increment
-  # This block runs in the main thread every time we complete a parallel block
-  next unless result.is_a? Hash
-  result.each do |test_name, stats|
-    test_stats_rollup[test_name] ||= {
-      started: [],
-      failed: []
-    }
-    test_stats_rollup[test_name][:started].concat(stats[:started])
-    test_stats_rollup[test_name][:failed].concat(stats[:failed])
-  end
-end
-) do |build|
-  build_info = @project.get_build(build)
-
-  # Skip this build if it's not on the requested branch
-  next unless options[:branch_name].nil? || (build_info['branch'] == options[:branch_name])
-
-  begin
-    build_date = Date.parse(build_info['start_time'])
-    output = @project.get_log(build, CONTAINER, STEP_NAME)
-    full_output_string = output[0]['message']
-
-    # Find every time a test we care about was started
-    test_starts = full_output_string.
-        scan(/cucumber.*--out (\w+)_output\.html/).
-        map{|matches| matches[0]}.
-        select{|name| options[:test_name_filter].nil? ? true : name =~ options[:test_name_filter]}
-
-    # Build a metadata map of tests
-    tests = test_starts.reduce({}) do |sums, name|
-      sums[name] ||= {started: [], failed: []}
-      sums[name][:started].push(build_date)
-      sums
+  test_stats_rollup = {}
+  # For now, limit this tool to searching for UI test failures
+  Parallel.each(
+    project.builds,
+    in_processes: MAX_THREADS,
+    finish: lambda do |_, _, result|
+      download_progress_bar.increment
+      # This block runs in the main thread each time a parallel block returns
+      next unless result.is_a? Hash
+      result.each do |test_name, stats|
+        test_stats_rollup[test_name] ||= {
+          started: [],
+          failed: []
+        }
+        test_stats_rollup[test_name][:started].concat(stats[:started])
+        test_stats_rollup[test_name][:failed].concat(stats[:failed])
+      end
     end
+  ) do |build|
+    # Skip this build if it's not on the requested branch
+    next unless build.branch? options[:branch_name]
 
-    # Find all failures, and add them to our test data
-    full_output_string.scan(/UI tests failed with <b>(\w+)<\/b>/).
-        map{|matches| matches[0]}.
-        each do |name|
-          if tests[name]
-            tests[name][:failed].push(build_date)
-          end
+    begin
+      build_date = Date.parse(build.start_time.to_s) # Ugh - clean up
+      output = build.get_log(CONTAINER, STEP_NAME)
+      full_output_string = output[0]['message']
+
+      # Find every time a test we care about was started
+      test_starts = full_output_string
+                    .scan(/cucumber.*--out (\w+)_output\.html/)
+                    .map { |matches| matches[0] }
+                    .select do |name|
+                      options[:test_name_filter].nil? ||
+                        name =~ options[:test_name_filter]
+                    end
+
+      # Build a metadata map of tests
+      tests = test_starts.each_with_object({}) do |name, sums|
+        sums[name] ||= { started: [], failed: [] }
+        sums[name][:started].push(build_date)
+      end
+
+      # Find all failures, and add them to our test data
+      full_output_string
+        .scan(/UI tests failed with <b>(\w+)<.b>/)
+        .map { |matches| matches[0] }
+        .each do |name|
+          tests[name][:failed].push(build_date) if tests[name]
         end
 
-    # 3. Report back to main thread:
-    # pp tests
-    tests
-  rescue => _
+      # 3. Report back to main thread:
+      tests
+    rescue => e
+      STDERR.puts e.message if options.verbose
+    end
   end
+  download_progress_bar.finish
+rescue ArgumentError => e
+  puts e.message
+  exit(-1)
 end
-download_progress_bar.finish
 
 def flakiness_for_whole_sample(test_stats)
   start_count = test_stats[:started].size
   failure_count = test_stats[:failed].size
   {
-      flakiness: failure_count.to_f / start_count,
-      sample_size: start_count
+    flakiness: failure_count.to_f / start_count,
+    sample_size: start_count
   }
 end
 
 def flakiness_by_period(test_stats, period)
-  starts_by_period = test_stats[:started].send("group_by_#{period}") {|x| x}
-  failures_by_period = test_stats[:failed].send("group_by_#{period}") {|x| x}
+  starts_by_period = test_stats[:started].send("group_by_#{period}") { |x| x }
+  failures_by_period = test_stats[:failed].send("group_by_#{period}") { |x| x }
   stats_by_period = starts_by_period.map do |k, v|
-    start_count = v.size
-    failure_count = failures_by_period[k] ? failures_by_period[k].size : 0
-    [k, {flakiness: failure_count.to_f / start_count, sample_size: start_count}]
+    failure_count = failures_by_period[k].try(:size) || 0
+    [k, {
+      flakiness: failure_count.to_f / v.size,
+      sample_size: v.size
+    }]
   end
   Hash[stats_by_period]
 end
@@ -139,12 +153,14 @@ if options.group_by
     pp flakiness_by_period(stats, options.group_by)
   end
 else
-  test_stats_ordered = test_stats_rollup.
-      map{|k, v| [k, flakiness_for_whole_sample(v)]}.
-      sort {|a, b| b[1][:flakiness] <=> a[1][:flakiness]}
-  puts "Flake    n Test Name"
+  test_stats_ordered = test_stats_rollup
+                       .map { |k, v| [k, flakiness_for_whole_sample(v)] }
+                       .sort { |a, b| b[1][:flakiness] <=> a[1][:flakiness] }
+  puts 'Flake    n Test Name'
   test_stats_ordered.each do |row|
-    puts format("%1.3f %4d %s", row[1][:flakiness], row[1][:sample_size], row[0])
+    puts format('%1.3f %4d %s',
+                row[1][:flakiness],
+                row[1][:sample_size],
+                row[0])
   end
 end
-
