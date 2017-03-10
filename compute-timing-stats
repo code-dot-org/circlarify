@@ -16,7 +16,12 @@ config = Circlarify::Config.new
 def main(options)
 
   # Download and format the information we need
-  @project = CircleProject.new(config.repository)
+  begin
+    @project = CircleProject.new(config.repository)
+  rescue ArgumentError => e
+    puts e.message
+    exit(-1)
+  end
   build_range = @project.build_range_from_options(options)
 
   if options[:output_format] == :plot
