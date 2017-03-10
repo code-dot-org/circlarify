@@ -137,7 +137,7 @@ elsif options[:output_format] == :plot
   # Display a graph of failure rates over time
   #
 
-  throw Error.new('Must provide a --branch to plot') if options[:branch].nil?
+  raise Exception.new('Must provide a --branch to plot') if options[:branch].nil?
 
   # Make sure weekends are included, and show up as zero
   dates = stats_by_date.keys.map{|d| DateTime.strptime("#{d} -8", '%Y-%m-%d %z')}
