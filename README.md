@@ -21,11 +21,12 @@ repository: code-dot-org/code-dot-org
 ## Common Options
 
 ### Specifying build ranges
-All of the tools accept `--start [build-number]` and `--end [build-number]` options that let you specify a build range you'd like to operate on.
+All of the tools accept `--after [build-number]`, `--before [build-number]` and `--count [build-count]` options that let you specify a build range you'd like to operate on.
 
-* If both `--start` and `--end` are supplied, the tool will use all builds in that range (inclusive).
-* If only `--start` is given, the tool will use all builds from that build up to the most recent build.
-* If no range is supplied, the tool will use the 30 most recent builds.
+* If both `--after` and `--before` are supplied, the tool will use all builds in that range (inclusive).
+* If only `--after` is given, the tool will use all builds from that build up to the most recent build.
+* If `--count` is supplied with either `--after` or `--before` you'll get `count` builds after/before the given build.
+* If only `--count` is supplied you'll get the `count` latest builds.
 
 ### Limiting results to one branch
 Most tools accept a `--branch [branch-name]` option that will further limit the selected build range, only including builds on the given branch.

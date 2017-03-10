@@ -35,12 +35,6 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./search-circle-builds [options]'
 
-  opts.on('--start StartBuildNumber', String, 'Start searching at build #.') do |n|
-    options[:start_build] = n.to_i
-  end
-  opts.on('--end EndBuildNumber', String, 'End searching at build #.') do |n|
-    options[:end_build] = n.to_i
-  end
   opts.on('--grep "String to Search for"', String, 'Search for given string.') do |grep_string|
     options[:grep_string] = grep_string
   end

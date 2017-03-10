@@ -22,12 +22,6 @@ options = OpenStruct.new
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./test-flakiness [options]'
 
-  opts.on('--start StartBuildNumber', String, 'Start searching at build #.') do |n|
-    options[:start_build] = n.to_i
-  end
-  opts.on('--end EndBuildNumber', String, 'End searching at build #.') do |n|
-    options[:end_build] = n.to_i
-  end
   opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
     options[:branch_name] = branch_name
   end
