@@ -28,27 +28,32 @@ module Circlarify
         if @arguments.after > @arguments.before
           raise ArgumentError.new("Invalid range #{@arguments.after}..#{@arguments.before}")
         end
-        (@arguments.after)..(@arguments.before)
+        first = @arguments.after
+        last = @arguments.before
       elsif @arguments.after && @arguments.count
-        (@arguments.after)..(@arguments.after + @arguments.count - 1)
+        first = @arguments.after
+        last = @arguments.after + @arguments.count - 1
       elsif @arguments.before && @arguments.count
-        (@arguments.before - @arguments.count + 1)..(@arguments.before)
+        first = @arguments.before - @arguments.count + 1
+        last = @arguments.before
       elsif @arguments.after
-        (@arguments.after)..(latest_build_num)
+        first = @arguments.after
+        last = api.get_latest_build_num
       elsif @arguments.before
         raise ArgumentError.new("Cannot specify --before without --after or --count.")
       elsif @arguments.count
-        last = latest_build_num
-        (last - @arguments.count + 1)..(last)
+        last = api.get_latest_build_num
+        first = last - @arguments.count + 1
       else
         # Default to 30 builds since the recent builds API call returns 30 builds.
-        last = latest_build_num
-        (last - 29)..(last)
+        last = api.get_latest_build_num
+        first = last - 29
       end
+      first..last
     end
 
-    def latest_build_num
-      CircleProject.new(repository).get_latest_build_num
+    def api
+      @api ||= CircleProject.new(repository)
     end
 
     # Mix global configuration options into the option parser, with documentation.
