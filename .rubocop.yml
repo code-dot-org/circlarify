@@ -1,3 +1,7 @@
+# There seem to be conflicts on this rule between Hound and local rubocop
+Style/MutableConstant:
+  Enabled: false
+
 # Don't allow more complexity than we have, but don't really enforce it either
 Metrics/AbcSize:
   Max: 121

@@ -57,7 +57,7 @@ class CircleProject
 
   def download_build_body(build_num)
     download_attempts_remaining = 3
-    while download_attempts_remaining.positive?
+    while download_attempts_remaining > 0
       begin
         return open("#{@project_api_base}/#{build_num}").read
       rescue
