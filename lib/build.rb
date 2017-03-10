@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 module Circlarify
+  # Represents a single Circle build
   class Build
     # @param [CircleProject] api
     # @param [build_descriptor:Object] build_info
@@ -25,15 +28,16 @@ module Circlarify
 
     # @param [Fixnum] container The container ID #
     # @param [String] step The build step to search for (e.g. "rake install")
-    # @return [Object, nil] full build output JSON object from CircleCI, or nil if error in retrieval
-    #   Example output JSON: https://gist.github.com/bcjordan/8349fbb1edc284839b42ae53ad19b68a
+    # @return [Object, nil] full build output JSON object from CircleCI,
+    #   or nil if error in retrieval
+    # Example output JSON: https://gist.github.com/bcjordan/8349fbb1edc284839b42ae53ad19b68a
     def get_log(container, step)
       @api.get_log(build_num, container, step)
     end
 
     def outcome
       # Possible build outcomes:
-      # :canceled, :infrastructure_fail, :timedout, :failed, :no_tests or :success
+      # :canceled, :infrastructure_fail, :timedout, :failed, :no_tests, :success
       @info['outcome']
     end
 

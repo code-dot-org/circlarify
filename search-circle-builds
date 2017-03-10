@@ -6,7 +6,7 @@ require 'optparse'
 require 'parallel'
 require_relative './lib/project'
 
-RUN_UI_TESTS_STEP_STRING = 'run_tests'
+RUN_UI_TESTS_STEP_STRING = 'run_tests'.freeze
 RUN_UI_TESTS_CONTAINER = 1
 MAX_THREADS = 50
 
@@ -25,8 +25,8 @@ KNOWN_FAIL_TYPES = [
     search_string: 'invalid base64',
     step_string: RUN_UI_TESTS_STEP_STRING,
     container: RUN_UI_TESTS_CONTAINER
-  },
-]
+  }
+].freeze
 
 project = Circlarify::Project.new
 
@@ -34,24 +34,36 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./search-circle-builds [options]'
 
-  opts.on('--grep "String to Search for"', String, 'Search for given string.') do |grep_string|
+  opts.on('--grep "String to Search for"',
+          String,
+          'Search for given string.') do |grep_string|
     options[:grep_string] = grep_string
   end
-  opts.on('--whole-lines', TrueClass, 'Print entire lines of found strings in output.') do |is_true|
+  opts.on('--whole-lines',
+          TrueClass,
+          'Print entire lines of found strings in output.') do |is_true|
     options[:whole_lines] = is_true
   end
-  opts.on('--count', TrueClass, 'Counts number of found strings in output.') do |is_true|
+  opts.on('--count',
+          TrueClass,
+          'Counts number of found strings in output.') do |is_true|
     options[:count] = is_true
   end
-  opts.on('--grep-container ', String, 'Search given container # for grep string.') do |grep_container|
+  opts.on('--grep-container ',
+          String,
+          'Search given container # for grep string.') do |grep_container|
     options[:grep_container] = grep_container.to_i
   end
   options[:grep_container] ||= RUN_UI_TESTS_CONTAINER
-  opts.on('--grep-step ', String, 'Search given step (substring) for grep string.') do |grep_step|
+  opts.on('--grep-step ',
+          String,
+          'Search given step (substring) for grep string.') do |grep_step|
     options[:grep_step] = grep_step
   end
   options[:grep_step] ||= RUN_UI_TESTS_STEP_STRING
-  opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
+  opts.on('--branch BranchName',
+          String,
+          'Limit results to builds for one branch.') do |branch_name|
     options[:branch_name] = branch_name
   end
 
@@ -73,9 +85,10 @@ def describe_fail_type(f)
 end
 
 begin
-  fail_types_list = fail_types_to_check.map { |f| describe_fail_type(f) }.join "\n"
+  fail_types_list = fail_types_to_check.map { |f| describe_fail_type(f) }
+                                       .join "\n"
   puts "Checking builds #{project.build_range} for output:\n#{fail_types_list}"
-  puts "Limited to branch: #{options[:branch_name]}" unless options[:branch_name].nil?
+  puts "Limited to branch: #{options[:branch_name]}" if options[:branch_name]
 
   Parallel.each(project.builds, in_processes: MAX_THREADS) do |build|
     fail_types_to_check.each do |known_fail|
@@ -83,6 +96,7 @@ begin
       next unless build.branch? options[:branch_name]
 
       output = build.get_log(known_fail[:container], known_fail[:step_string])
+      next if output.nil?
 
       begin
         full_output_string = output[0]['message']
@@ -91,19 +105,22 @@ begin
             count = full_output_string.split("\n").count do |line|
               line.include? known_fail[:search_string]
             end
-            puts "Build #{build.url} output contains #{count} of: #{known_fail[:search_string]}"
+            puts "Build #{build.url} output contains #{count} of: "\
+              "#{known_fail[:search_string]}"
           elsif options[:whole_lines]
             lines = []
             full_output_string.split("\n").each do |line|
               lines << line if line.include? known_fail[:search_string]
             end
             puts "Build #{build.url} output contains lines:"
-            lines.each{|l| puts l}
+            lines.each { |l| puts l }
           else
-            puts "Build #{build.url} output contains: #{known_fail[:search_string]}"
+            puts "Build #{build.url} output contains:"\
+              "#{known_fail[:search_string]}"
           end
         end
-      rescue => _
+      rescue => e
+        STDERR.puts e
       end
     end
   end

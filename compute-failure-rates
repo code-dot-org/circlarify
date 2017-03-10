@@ -9,10 +9,11 @@ require_relative './lib/project'
 
 project = Circlarify::Project.new
 
+# Augment Hash with hmap function
 class Hash
   # Like Enumerable::map but returns a Hash instead of an Array
-  def hmap(&block)
-    Hash[map {|k, v| yield k, v }]
+  def hmap(&_)
+    Hash[map { |k, v| yield k, v }]
   end
 end
 
@@ -25,10 +26,14 @@ options = {
 OptionParser.new do |opts|
   opts.banner = 'Usage: ./compute-failure-rates [options]'
 
-  opts.on('--group branchName,branchName', Array, 'Add a column aggregating results for the listed branches.') do |a|
+  opts.on('--group branchName,branchName',
+          Array,
+          'Add a column aggregating results for the listed branches.') do |a|
     options[:custom_columns] << a
   end
-  opts.on('--branch branchName', String, 'ONLY show results for the given branch.') do |b|
+  opts.on('--branch branchName',
+          String,
+          'ONLY show results for the given branch.') do |b|
     options[:branch] = b
   end
   opts.on('--csv', 'Display results in CSV format.') do
@@ -61,22 +66,33 @@ end
 
 # Group the builds by date
 builds_by_date = build_infos.compact.group_by do |build_info|
-  build_info[:queued_at].to_time.in_time_zone('Pacific Time (US & Canada)').strftime('%Y-%m-%d')
+  build_info[:queued_at]
+    .to_time
+    .in_time_zone('Pacific Time (US & Canada)')
+    .strftime('%Y-%m-%d')
 end
 
 # Define columns - each maps to a lambda that filters builds
 columns = {
-  'Total' => ->(builds) {builds},
-  'Pipeline' => ->(builds) {builds.select {|i| %w(staging test production).include?(i[:branch])}},
-  'Branch' => ->(builds) {builds.reject {|i| %w(staging test production).include?(i[:branch])}}
+  'Total' => ->(builds) { builds },
+  'Pipeline' => lambda do |builds|
+    builds.select { |i| %w(staging test production).include?(i[:branch]) }
+  end,
+  'Branch' => lambda do |builds|
+    builds.reject { |i| %w(staging test production).include?(i[:branch]) }
+  end
 }
 options[:custom_columns].each do |branches|
-  columns[branches.join(',')] = ->(builds) {builds.select{|i| branches.include?(i[:branch])}}
+  columns[branches.join(',')] = lambda do |builds|
+    builds.select { |i| branches.include?(i[:branch]) }
+  end
 end
 # Or only show one branch if we passed the branch option
 unless options[:branch].nil?
   columns = {
-      options[:branch] => ->(builds) {builds.select {|i| i[:branch] == options[:branch]}}
+    options[:branch] => lambda do |builds|
+      builds.select { |i| i[:branch] == options[:branch] }
+    end
   }
 end
 
@@ -86,14 +102,14 @@ stats_by_date = builds_by_date.hmap do |date, build_infos_for_date|
     date,
     columns.hmap do |name, column|
       builds = column.call build_infos_for_date
-      succeeded_builds = builds.select {|i| i[:succeeded]}.count
-      failed_builds = builds.select {|i| i[:failed]}.count
+      succeeded_builds = builds.select { |i| i[:succeeded] }.count
+      failed_builds = builds.select { |i| i[:failed] }.count
       [
         name,
         {
           total_builds: succeeded_builds + failed_builds,
           failed_builds: failed_builds,
-          failure_rate: Float(failed_builds) / (succeeded_builds + failed_builds)
+          failure_rate: failed_builds.to_f / (succeeded_builds + failed_builds)
         }
       ]
     end
@@ -101,11 +117,13 @@ stats_by_date = builds_by_date.hmap do |date, build_infos_for_date|
 end
 
 # Print build stats
-puts "Failure rates for builds #{project.build_range} by date (1.0 = 100% failures)"
+puts "Failure rates for builds #{project.build_range} by date "\
+  '(1.0 = 100% failures)'
 if options[:output_format] == 'csv'
   puts format("%s#{',%s' * columns.size}", 'Date', *columns.keys)
   stats_by_date.each do |date, stats|
-    puts format("%s#{',%.3f' * columns.size}", date, *stats.map {|_, v| v[:failure_rate].round(3)})
+    row_of_stats = stats.map { |_, v| v[:failure_rate].round(3) }
+    puts format("%s#{',%.3f' * columns.size}", date, *row_of_stats)
   end
 
 elsif options[:output_format] == :plot
@@ -114,24 +132,26 @@ elsif options[:output_format] == :plot
   # Display a graph of failure rates over time
   #
 
-  raise Exception.new('Must provide a --branch to plot') if options[:branch].nil?
+  raise Exception, 'Must provide a --branch to plot' if options[:branch].nil?
 
   # Make sure weekends are included, and show up as zero
-  dates = stats_by_date.keys.map{|d| DateTime.strptime("#{d} -8", '%Y-%m-%d %z')}
+  dates = stats_by_date.keys.map do |d|
+    DateTime.strptime("#{d} -8", '%Y-%m-%d %z')
+  end
   ordered_stats = []
   (dates.min..dates.max).each do |date|
-    if date.wday == 0 || date.wday == 6
+    if [0, 6].include? date.wday
       ordered_stats << {
-          date: date,
-          total_builds: 0,
-          failed_builds: 0
+        date: date,
+        total_builds: 0,
+        failed_builds: 0
       }
     else
       branch_stats = stats_by_date[date.strftime('%Y-%m-%d')][options[:branch]]
       ordered_stats << {
-          date: date,
-          total_builds: branch_stats[:total_builds],
-          failed_builds: branch_stats[:failed_builds]
+        date: date,
+        total_builds: branch_stats[:total_builds],
+        failed_builds: branch_stats[:failed_builds]
       }
     end
   end
@@ -148,7 +168,9 @@ elsif options[:output_format] == :plot
   end
   js_data += "]\n"
 
-  title = "Circle CI #{options[:branch]} builds by outcome for #{dates.min.strftime('%Y-%m-%d')}..#{dates.max.strftime('%Y-%m-%d')} (builds #{project.build_range})"
+  title = "Circle CI #{options[:branch]} builds by outcome for "\
+    "#{dates.min.strftime('%Y-%m-%d')}..#{dates.max.strftime('%Y-%m-%d')} "\
+    "(builds #{project.build_range})"
 
   # Write out plot
   # https://developers.google.com/chart/interactive/docs/gallery/areachart
@@ -188,12 +210,19 @@ elsif options[:output_format] == :plot
 
 else
 
-  puts format("%-10s#{' %16s' * columns.size}", 'Date', *columns.keys.map {|k| k[0, 14]})
+  column_names = columns.keys.map { |k| k[0, 14] }
+  puts format("%-10s#{' %16s' * columns.size}", 'Date', *column_names)
   stats_by_date.each do |date, stats|
+    row_of_stats = stats.map do |_, v|
+      [
+        format('%s/%s', v[:failed_builds], v[:total_builds]),
+        v[:failure_rate].round(3)
+      ]
+    end.flatten
     puts format(
       "%-10s#{'  %7s = %5.3f' * columns.size}",
       date,
-      *stats.map {|_, v| [format("%s/%s", v[:failed_builds], v[:total_builds]), v[:failure_rate].round(3)]}.flatten
+      *row_of_stats
     )
   end
 end
