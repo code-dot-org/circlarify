@@ -18,11 +18,11 @@ def main(options)
   # Download and format the information we need
   begin
     @project = CircleProject.new(project.repository)
+    build_range = project.build_range
   rescue ArgumentError => e
     puts e.message
     exit(-1)
   end
-  build_range = @project.build_range_from_options(options)
 
   if options[:output_format] == :plot
     builds = []

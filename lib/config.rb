@@ -9,7 +9,6 @@ require_relative './constants'
 # Exposes those settings to the rest of the application
 #
 module Circlarify
-
   class Config
     include Singleton
     USER_CONFIG_FILE_NAME = 'config.yml'

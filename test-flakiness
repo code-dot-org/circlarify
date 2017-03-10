@@ -44,11 +44,11 @@ end.parse!
 
 begin
   @project = CircleProject.new(project.repository)
+  build_range = project.build_range
 rescue ArgumentError => e
   puts e.message
   exit(-1)
 end
-build_range = @project.build_range_from_options(options)
 
 puts [
   "Computing flakiness rates",

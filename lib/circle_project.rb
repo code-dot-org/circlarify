@@ -87,25 +87,6 @@ class CircleProject
     get_recent_builds.first['build_num']
   end
 
-  # Given a set of options, generate a reasonable range of builds to consider.
-  # Separated out to be useful to command-line tools.
-  # @param opts.start_build [Fixnum] (optional) - The first build to include in
-  #        the results.  If omitted, 30 builds will be returned.
-  # @param opts.end_build [Fixnum] (optional) - The last build to include in the
-  #        results.  If omitted, results will end with the most recent build.
-  # @return [Range] A range of build numbers matching the given options
-  def build_range_from_options(opts = {})
-    # Default end build should be the most recent build
-    end_build = opts[:end_build] || get_latest_build_num
-
-    # Default start build should give us 30 builds up to the end build.
-    # This allows us to make only one API call in the all-defaults case, since
-    # the recent builds API call returns 30 builds.
-    start_build = opts[:start_build] || end_build - 29
-
-    start_build..end_build
-  end
-
   # Retrieve the set of build descriptor objects from the CircleCI API for this
   # project for the given range
   # @param range [Enumerable<Fixnum>] set of build numbers to retrieve
