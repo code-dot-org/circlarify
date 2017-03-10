@@ -43,8 +43,6 @@ end.parse!
 
 build_infos = []
 begin
-  build_range = project.build_range
-
   # Download and format the build information we need
   build_infos = project.builds.map do |build|
     next if build['queued_at'].nil? || build['branch'].nil? || build['outcome'].nil?
@@ -104,7 +102,7 @@ stats_by_date = builds_by_date.hmap do |date, build_infos_for_date|
 end
 
 # Print build stats
-puts "Failure rates for builds #{build_range} by date (1.0 = 100% failures)"
+puts "Failure rates for builds #{project.build_range} by date (1.0 = 100% failures)"
 if options[:output_format] == 'csv'
   puts format("%s#{',%s' * columns.size}", 'Date', *columns.keys)
   stats_by_date.each do |date, stats|
@@ -151,7 +149,7 @@ elsif options[:output_format] == :plot
   end
   js_data += "]\n"
 
-  title = "Circle CI #{options[:branch]} builds by outcome for #{dates.min.strftime('%Y-%m-%d')}..#{dates.max.strftime('%Y-%m-%d')} (builds #{build_range})"
+  title = "Circle CI #{options[:branch]} builds by outcome for #{dates.min.strftime('%Y-%m-%d')}..#{dates.max.strftime('%Y-%m-%d')} (builds #{project.build_range})"
 
   # Write out plot
   # https://developers.google.com/chart/interactive/docs/gallery/areachart
