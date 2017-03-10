@@ -61,7 +61,6 @@ end.parse!
 
 begin
   @project = CircleProject.new(project.repository)
-  build_range = project.build_range
 rescue ArgumentError => e
   puts e.message
   exit(-1)
@@ -82,20 +81,20 @@ def describe_fail_type(f)
 end
 
 fail_types_list = fail_types_to_check.map { |f| describe_fail_type(f) }.join "\n"
-puts "Checking builds #{build_range} for output:\n#{fail_types_list}"
+puts "Checking builds #{project.build_range} for output:\n#{fail_types_list}"
 puts "Limited to branch: #{options[:branch_name]}" unless options[:branch_name].nil?
 
-Parallel.each(build_range, in_processes: MAX_THREADS) do |build|
+Parallel.each(project.builds, in_processes: MAX_THREADS) do |build|
   fail_types_to_check.each do |known_fail|
     # Skip this build if it's not on the requested branch
-    next unless options[:branch_name].nil? || (@project.get_build(build)['branch'] == options[:branch_name])
+    next unless build.branch? options[:branch_name]
 
-    output = @project.get_log(build, known_fail[:container], known_fail[:step_string])
+    output = @project.get_log(build.build_num, known_fail[:container], known_fail[:step_string])
 
     begin
       full_output_string = output[0]['message']
       if full_output_string.include? known_fail[:search_string]
-        build_url = @project.build_url(build)
+        build_url = @project.build_url(build.build_num)
         if options[:count]
           count = full_output_string.split("\n").count do |line|
             line.include? known_fail[:search_string]
