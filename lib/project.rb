@@ -20,8 +20,10 @@ module Circlarify
 
     def repository
       @arguments.repository ||
-          Config.instance.repository ||
-          raise(ArgumentError.new("No repository specified.  Pass one (--repository) or configure a default in #{Config.USER_CONFIG_FILE_PATH}."))
+        Config.instance.repository ||
+        raise(ArgumentError, "No repository specified. "\
+        "Pass one (--repository) or configure a default in "\
+        "#{USER_CONFIG_FILE_PATH}.")
     end
 
     def api
@@ -72,12 +74,13 @@ module Circlarify
     # @param [OptionParser] opts
     def provide_cli_options(opts)
       opts.separator <<-BANNER
+      
     BUILD SELECTION
       These options let you select which repository and which subset of builds
       you'd like to examine.
       Some options can be given configured defaults by setting them up in a
       local configuration file.  Yours should be found at:
-      #{Config::USER_CONFIG_FILE_PATH}
+      #{USER_CONFIG_FILE_PATH}
 
       BANNER
 
@@ -97,11 +100,12 @@ module Circlarify
         @arguments.count = n
       end
 
+      opts.on('--end BuildNumber', Integer, '(deprecated) see --before') do |n|
+        @arguments.before = n
+      end
+
       opts.on('--start BuildNumber', Integer, '(deprecated) see --after') do |n|
         @arguments.after = n
-      end
-      opts.on('--end EndBuildNumber', Integer, '(deprecated) see --before') do |n|
-        @arguments.before = n
       end
 
       opts.on_tail('-h', '--help', 'Show this message.') do

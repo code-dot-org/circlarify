@@ -8,7 +8,6 @@ require_relative './constants'
 
 GITHUB_PROJECT_WEB_BASE = 'https://circleci.com/gh'
 GITHUB_PROJECT_API_BASE = 'https://circleci.com/api/v1.1/project/github'.freeze
-CACHE_DIRECTORY = "#{Circlarify::LOCAL_FILES_PATH}/builds".freeze
 
 # Abstracted access to a Circle CI project builds via their REST API
 class CircleProject
@@ -58,7 +57,7 @@ class CircleProject
     # Parse build and return it, saving to local cache if the build outcome is determined
     build_summary = JSON.parse(body)
     if build_summary && !build_summary['outcome'].nil?
-      FileUtils.mkdir_p(CACHE_DIRECTORY)
+      FileUtils.mkdir_p(Circlarify::CACHE_DIRECTORY)
       Zlib::GzipWriter.open(cache_file_name(build_num)) do |file|
         file.write body
       end
@@ -120,6 +119,6 @@ class CircleProject
 
   # @return [String] Location of cache file for build
   def cache_file_name(build_num)
-    "#{CACHE_DIRECTORY}/#{build_num}.json.gz"
+    "#{Circlarify::CACHE_DIRECTORY}/#{build_num}.json.gz"
   end
 end

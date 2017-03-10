@@ -11,8 +11,6 @@ require_relative './constants'
 module Circlarify
   class Config
     include Singleton
-    USER_CONFIG_FILE_NAME = 'config.yml'
-    USER_CONFIG_FILE_PATH = "#{Circlarify::LOCAL_FILES_PATH}/#{USER_CONFIG_FILE_NAME}".freeze
 
     def initialize
       @user_config = OpenStruct.new YAML.load_file(USER_CONFIG_FILE_PATH)
