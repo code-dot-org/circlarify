@@ -68,7 +68,7 @@ OptionParser.new do |opts|
     exit
   end
 
-  config.add_to_cli_options(opts)
+  config.add_to_cli_options opts
 end.parse!
 
 begin

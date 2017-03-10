@@ -5,6 +5,7 @@ require 'open-uri'
 require 'parallel'
 require 'zlib'
 
+GITHUB_PROJECT_WEB_BASE = 'https://circleci.com/gh'
 GITHUB_PROJECT_API_BASE = 'https://circleci.com/api/v1.1/project/github'.freeze
 CACHE_DIRECTORY = File.expand_path('~/.circlarify/builds').freeze
 
@@ -12,9 +13,14 @@ CACHE_DIRECTORY = File.expand_path('~/.circlarify/builds').freeze
 class CircleProject
   extend Memoist
 
-  def initialize(project = 'code-dot-org/code-dot-org')
-    @project = project
-    @project_api_base = "#{GITHUB_PROJECT_API_BASE}/#{@project}"
+  # @param [String] repository - repo name, like "code-dot-org/code-dot-org"
+  def initialize(repository)
+    @project_web_base = "#{GITHUB_PROJECT_WEB_BASE}/#{repository}"
+    @project_api_base = "#{GITHUB_PROJECT_API_BASE}/#{repository}"
+  end
+
+  def build_url(build_num)
+    "#{@project_web_base}/#{build_num}"
   end
 
   # @param build_num [Fixnum] The CircleCI build #

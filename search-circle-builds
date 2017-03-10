@@ -4,6 +4,7 @@
 
 require 'optparse'
 require 'parallel'
+require_relative './lib/config'
 require_relative './lib/circle_project'
 
 RUN_UI_TESTS_STEP_STRING = 'run_tests'
@@ -27,6 +28,8 @@ KNOWN_FAIL_TYPES = [
     container: RUN_UI_TESTS_CONTAINER
   },
 ]
+
+config = Config.new
 
 options = {}
 OptionParser.new do |opts|
@@ -62,9 +65,11 @@ OptionParser.new do |opts|
     puts opts
     exit
   end
+
+  config.add_to_cli_options opts
 end.parse!
 
-@project = CircleProject.new('code-dot-org/code-dot-org')
+@project = CircleProject.new(config.repository)
 build_range = @project.build_range_from_options(options)
 
 fail_types_to_check = KNOWN_FAIL_TYPES
@@ -95,20 +100,21 @@ Parallel.each(build_range, in_processes: MAX_THREADS) do |build|
     begin
       full_output_string = output[0]['message']
       if full_output_string.include? known_fail[:search_string]
+        build_url = @project.build_url(build)
         if options[:count]
           count = full_output_string.split("\n").count do |line|
             line.include? known_fail[:search_string]
           end
-          puts "Build https://circleci.com/gh/code-dot-org/code-dot-org/#{build} output contains #{count} of: #{known_fail[:search_string]}"
+          puts "Build #{build_url} output contains #{count} of: #{known_fail[:search_string]}"
         elsif options[:whole_lines]
           lines = []
           full_output_string.split("\n").each do |line|
             lines << line if line.include? known_fail[:search_string]
           end
-          puts "Build https://circleci.com/gh/code-dot-org/code-dot-org/#{build} output contains lines:"
+          puts "Build #{build_url} output contains lines:"
           lines.each{|l| puts l}
         else
-          puts "Build https://circleci.com/gh/code-dot-org/code-dot-org/#{build} output contains: #{known_fail[:search_string]}"
+          puts "Build #{build_url} output contains: #{known_fail[:search_string]}"
         end
       end
     rescue => _

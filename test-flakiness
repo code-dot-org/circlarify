@@ -6,6 +6,7 @@ require 'optparse'
 require 'ostruct'
 require 'parallel'
 require 'ruby-progressbar'
+require_relative './lib/config'
 require_relative './lib/circle_project'
 require 'pp'
 
@@ -14,6 +15,8 @@ Groupdate.time_zone = "Pacific Time (US & Canada)"
 MAX_THREADS = 50
 CONTAINER = 1
 STEP_NAME = 'run_tests'
+
+config = Config.new
 
 options = OpenStruct.new
 OptionParser.new do |opts|
@@ -40,9 +43,11 @@ OptionParser.new do |opts|
     puts opts
     exit
   end
+
+  config.add_to_cli_options opts
 end.parse!
 
-@project = CircleProject.new('code-dot-org/code-dot-org')
+@project = CircleProject.new(config.repository)
 build_range = @project.build_range_from_options(options)
 
 puts [

@@ -6,14 +6,17 @@ require 'launchy'
 require 'optparse'
 require 'time'
 require 'pp'
+require_relative './lib/config'
 require_relative './lib/circle_project'
 
 OUTPUT_DIRECTORY = File.expand_path('~/.circle-cli/output').freeze
 
+config = Config.new
+
 def main(options)
 
   # Download and format the information we need
-  @project = CircleProject.new('code-dot-org/code-dot-org')
+  @project = CircleProject.new(config.repository)
   build_range = @project.build_range_from_options(options)
 
   if options[:output_format] == :plot
@@ -203,6 +206,8 @@ OptionParser.new do |opts|
     puts opts
     exit
   end
+
+  config.add_to_cli_options opts
 end.parse!
 
 main(options)
