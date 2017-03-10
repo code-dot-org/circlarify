@@ -17,12 +17,12 @@ def main(project, options)
     builds = []
     step_times = {}
     project.builds(true).each do |build|
-      next if build['outcome'] != 'success'
-      next if build['steps'].nil? || build['build_time_millis'].nil?
-      next unless options[:branch_name].nil? || build['branch'] == options[:branch_name]
+      next unless build.succeeded?
+      next if build.steps.nil? || build.build_time_millis.nil?
+      next unless build.branch? options[:branch_name]
 
       build_steps = {}
-      build['steps'].each do |step|
+      build.steps.each do |step|
         next unless options[:step_pattern].nil? || options[:step_pattern] =~ step['name']
         step['actions'].each do |action|
           next unless options[:container_num] == action['index'] || step['actions'].size == 1
@@ -35,7 +35,7 @@ def main(project, options)
       end
 
       builds.push({
-        time: Time.parse(build['start_time']),
+        time: build.start_time,
         steps: build_steps
       })
     end
@@ -103,13 +103,13 @@ def main(project, options)
     step_durations = {}
 
     project.builds(true).each do |build|
-      next if build['outcome'] != 'success'
-      next if build['steps'].nil? || build['build_time_millis'].nil?
-      next unless options[:branch_name].nil? || build['branch'] == options[:branch_name]
+      next unless build.succeeded?
+      next if build.steps.nil? || build.build_time_millis.nil?
+      next unless build.branch? options[:branch_name]
 
-      build_durations.push(build['build_time_millis'])
+      build_durations.push(build.build_time_millis)
 
-      build['steps'].each do |step|
+      build.steps.each do |step|
         next unless options[:step_pattern].nil? || options[:step_pattern] =~ step['name']
         step['actions'].each do |action|
           step_key = format("%9d %s", action['index'], step['name'])

@@ -1,5 +1,6 @@
 require 'memoist'
 require 'ostruct'
+require_relative './build'
 require_relative './circle_project'
 require_relative './config'
 
@@ -64,7 +65,7 @@ module Circlarify
     # @return [Array<build_descriptor:Object>] set of found build descriptors
     #   in given range.
     def builds(ensure_full_summary = false)
-      api.get_builds(build_range, ensure_full_summary)
+      api.get_builds(build_range, ensure_full_summary).map{|info| Build.new(info)}
     end
 
     # Mix global configuration options into the option parser, with documentation.
@@ -111,5 +112,6 @@ module Circlarify
 
     memoize :api
     memoize :build_range
+    memoize :builds
   end
 end

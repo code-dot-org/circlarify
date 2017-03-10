@@ -45,14 +45,13 @@ build_infos = []
 begin
   # Download and format the build information we need
   build_infos = project.builds.map do |build|
-    next if build['queued_at'].nil? || build['branch'].nil? || build['outcome'].nil?
+    next if build.queued_at.nil? || build.branch.nil? || build.outcome.nil?
     {
-      build_num: build['build_num'],
-      queued_at: DateTime.parse(build['queued_at']),
-      branch: build['branch'],
-      # Possible build outcomes: :canceled, :infrastructure_fail, :timedout, :failed, :no_tests or :success
-      succeeded: build['outcome'] == 'success',
-      failed: build['outcome'] == 'failed' || build['outcome'] == 'timedout'
+      build_num: build.build_num,
+      queued_at: build.queued_at,
+      branch: build.branch,
+      succeeded: build.succeeded?,
+      failed: build.failed?
     }
   end
 rescue ArgumentError => e
