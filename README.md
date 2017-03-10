@@ -8,6 +8,16 @@ From the repository root, run `bundle install`.  Then you should be able to exec
 
 The tools will write to `~/.circlarify` to cache build information and avoid redundant requests to the Circle CI API.  Cached build JSON gets compressed; caching summary data for 10,000 builds requires about 115MB of disk space.
 
+### config.yml
+You can optionally create a configuration file at `~/.circlarify/config.yml` to provide some default parameters to all commands.
+
+```yml
+# config.yml
+
+# Default repository to use when searching builds
+repository: code-dot-org/code-dot-org
+```
+
 ## Common Options
 
 ### Specifying build ranges
