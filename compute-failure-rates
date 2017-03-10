@@ -5,7 +5,10 @@
 require 'active_support/time'
 require 'launchy'
 require 'optparse'
+require_relative './lib/config'
 require_relative './lib/circle_project'
+
+config = Config.new
 
 class Hash
   # Like Enumerable::map but returns a Hash instead of an Array
@@ -64,9 +67,16 @@ OptionParser.new do |opts|
     puts opts
     exit
   end
+
+  config.add_to_cli_options(opts)
 end.parse!
 
-@project = CircleProject.new('code-dot-org/code-dot-org')
+begin
+  @project = CircleProject.new(config.repository)
+rescue ArgumentError => e
+  puts e.message
+  exit(-1)
+end
 
 # Download and format the build information we need
 build_range = @project.build_range_from_options(options)
