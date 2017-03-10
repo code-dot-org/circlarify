@@ -61,10 +61,6 @@ OptionParser.new do |opts|
   opts.on('--branch BranchName', String, 'Limit results to builds for one branch.') do |branch_name|
     options[:branch_name] = branch_name
   end
-  opts.on_tail('-h', '--help', 'Show this message.') do
-    puts opts
-    exit
-  end
 
   config.add_to_cli_options opts
 end.parse!

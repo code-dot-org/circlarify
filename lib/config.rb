@@ -37,6 +37,11 @@ module Circlarify
       opts.on('-r', '--repository RepositoryName', String, 'Which repository to use (e.g. code-dot-org/code-dot-org)') do |s|
         @arguments.repository = s
       end
+
+      opts.on_tail('-h', '--help', 'Show this message.') do
+        puts opts
+        exit
+      end
     end
 
     def user_config

@@ -39,11 +39,6 @@ OptionParser.new do |opts|
     options.group_by = t
   end
 
-  opts.on_tail('-h', '--help', 'Show this message.') do
-    puts opts
-    exit
-  end
-
   config.add_to_cli_options opts
 end.parse!
 

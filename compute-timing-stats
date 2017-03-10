@@ -202,10 +202,6 @@ OptionParser.new do |opts|
   opts.on('--plot', 'Display results as a graph.') do
     options[:output_format] = :plot
   end
-  opts.on_tail('-h', '--help', 'Show this message.') do
-    puts opts
-    exit
-  end
 
   config.add_to_cli_options opts
 end.parse!
