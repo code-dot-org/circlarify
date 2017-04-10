@@ -21,6 +21,10 @@ module Circlarify
       @user_config = OpenStruct.new
     end
 
+    def api_token
+      @user_config.api_token
+    end
+
     def repository
       @user_config.repository
     end
