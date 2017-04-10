@@ -28,11 +28,12 @@ module Circlarify
 
     # @param [Fixnum] container The container ID #
     # @param [String] step The build step to search for (e.g. "rake install")
+    # @param [Bool] verbose
     # @return [Object, nil] full build output JSON object from CircleCI,
     #   or nil if error in retrieval
     # Example output JSON: https://gist.github.com/bcjordan/8349fbb1edc284839b42ae53ad19b68a
-    def get_log(container, step)
-      @api.get_log(build_num, container, step)
+    def get_log(container, step, verbose = false)
+      @api.get_log(build_num, container, step, verbose)
     end
 
     def outcome

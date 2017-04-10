@@ -46,6 +46,10 @@ OptionParser.new do |opts|
     options.group_by = t
   end
 
+  opts.on('--verbose') do
+    options.verbose = true
+  end
+
   project.provide_cli_options opts
 end.parse!
 
@@ -61,7 +65,7 @@ begin
   ].compact.join(' ')
 
   puts 'Scanning logs...'
-  download_progress_bar = ProgressBar.create(total: project.build_range.size)
+  download_progress_bar = ProgressBar.create(total: project.build_range.size) unless options.verbose
 
   test_stats_rollup = {}
   # For now, limit this tool to searching for UI test failures
@@ -69,7 +73,7 @@ begin
     project.builds,
     in_processes: MAX_THREADS,
     finish: lambda do |_, _, result|
-      download_progress_bar.increment
+      download_progress_bar.increment if download_progress_bar
       # This block runs in the main thread each time a parallel block returns
       next unless result.is_a? Hash
       result.each do |test_name, stats|
@@ -87,7 +91,8 @@ begin
 
     begin
       build_date = Date.parse(build.start_time.to_s) # Ugh - clean up
-      output = build.get_log(CONTAINER, STEP_NAME)
+      puts "#{build.build_num} #{build_date}" if options.verbose
+      output = build.get_log(CONTAINER, STEP_NAME, options.verbose)
       full_output_string = output[0]['message']
 
       # Find every time a test we care about was started
@@ -119,7 +124,7 @@ begin
       STDERR.puts e.message if options.verbose
     end
   end
-  download_progress_bar.finish
+  download_progress_bar.finish if download_progress_bar
 rescue ArgumentError => e
   puts e.message
   exit(-1)
