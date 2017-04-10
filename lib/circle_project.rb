@@ -6,6 +6,7 @@ require 'memoist'
 require 'open-uri'
 require 'parallel'
 require 'zlib'
+require_relative './config'
 require_relative './constants'
 
 GITHUB_PROJECT_WEB_BASE = 'https://circleci.com/gh'
@@ -59,7 +60,7 @@ class CircleProject
     download_attempts_remaining = 3
     while download_attempts_remaining > 0
       begin
-        return open("#{@project_api_base}/#{build_num}").read
+        return open(with_token("#{@project_api_base}/#{build_num}")).read
       rescue
         download_attempts_remaining -= 1
         sleep(0.25)
@@ -97,7 +98,8 @@ class CircleProject
       open(
         build_step_output_url(
           get_build(build_num, true),
-          container_num, grep_for_step
+          container_num,
+          grep_for_step
         )
       ).read
     )
@@ -108,7 +110,7 @@ class CircleProject
   # @return [Array<build_descriptor:Object>] 30 most recent build descriptors
   # from the CircleCI API, in reverse-chronological order.
   def recent_builds
-    JSON.parse(open(@project_api_base).read)
+    JSON.parse(open(with_token(@project_api_base)).read)
   end
 
   # @return [Integer] The most recent build number in the project
@@ -146,9 +148,18 @@ class CircleProject
   # @param [String] grep_for_step The build step to search for
   #   (e.g. "rake install")
   def build_step_output_url(build_object, container_id, grep_for_step)
-    build_object['steps'].select do |o|
-      o['name'].include? grep_for_step
-    end[0]['actions'][container_id]['output_url']
+    step = build_object['steps']
+      .select { |o| o['name'].include? grep_for_step }
+    step[0]['actions'][container_id]['output_url']
+  end
+
+  def with_token(url)
+    token = Circlarify::Config.instance.api_token
+    if token
+      "#{url}?circle-token=#{token}"
+    else
+      url
+    end
   end
 
   # @return [String] Location of cache file for build
