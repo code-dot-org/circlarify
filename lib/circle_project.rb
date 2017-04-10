@@ -149,7 +149,7 @@ class CircleProject
   #   (e.g. "rake install")
   def build_step_output_url(build_object, container_id, grep_for_step)
     step = build_object['steps']
-      .select { |o| o['name'].include? grep_for_step }
+           .select { |o| o['name'].include? grep_for_step }
     step[0]['actions'][container_id]['output_url']
   end
 
