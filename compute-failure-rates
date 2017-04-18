@@ -159,8 +159,7 @@ elsif options[:output_format] == :plot
   js_data = "[\n"
   js_data += "['Date', 'Failures', 'Successes'],\n"
   ordered_stats.each do |stats|
-    # Represent date as a JS date, constructed with ms since the epoch
-    js_build_time = "new Date(#{stats[:date].to_f * 1000})"
+    js_build_time = stats[:date].strftime('"%b %d"')
     js_failures = stats[:failed_builds]
     js_successes = stats[:total_builds] - stats[:failed_builds]
 
@@ -190,7 +189,7 @@ elsif options[:output_format] == :plot
 
         var options = {
           title: '#{title}',
-          hAxis: {title: 'Build date',  titleTextStyle: {color: '#333'}},
+          hAxis: {title: 'Build date',  titleTextStyle: {color: '#333'}, showTextEvery: 2},
           colors: ['#C40000', '#7FB900'],
           isStacked: true
         };
