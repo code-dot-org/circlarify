@@ -12,8 +12,8 @@ require 'pp'
 Groupdate.time_zone = 'Pacific Time (US & Canada)'
 
 MAX_THREADS = 50
-CONTAINER = 1
-STEP_NAME = 'run_tests'.freeze
+CONTAINER = 0
+STEP_NAME = 'run_ui_tests'.freeze
 
 project = Circlarify::Project.new
 
