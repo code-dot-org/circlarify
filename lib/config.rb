@@ -28,5 +28,9 @@ module Circlarify
     def repository
       @user_config.repository
     end
+
+    def parallelism
+      @user_config.parallelism || 50
+    end
   end
 end

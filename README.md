@@ -16,6 +16,9 @@ You can optionally create a configuration file at `~/.circlarify/config.yml` to 
 
 # Default repository to use when searching builds
 repository: code-dot-org/code-dot-org
+
+# Number of processes to use while searching in parallel
+parallelism: 50
 ```
 
 ## Common Options

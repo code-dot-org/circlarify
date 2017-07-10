@@ -131,7 +131,7 @@ class CircleProject
     Parallel.map(
       range,
       progress: "Downloading #{range.min}..#{range.max}",
-      in_processes: 50
+      in_processes: Circlarify::Config.instance.parallelism
     ) { |n| get_build(n, ensure_full_summary) }
   end
 
