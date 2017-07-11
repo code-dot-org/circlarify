@@ -6,12 +6,12 @@ require 'optparse'
 require 'ostruct'
 require 'parallel'
 require 'ruby-progressbar'
+require_relative './lib/config'
 require_relative './lib/project'
 require 'pp'
 
 Groupdate.time_zone = 'Pacific Time (US & Canada)'
 
-MAX_THREADS = 50
 CONTAINER = 0
 STEP_NAME = 'run_ui_tests'.freeze
 
@@ -71,7 +71,7 @@ begin
   # For now, limit this tool to searching for UI test failures
   Parallel.each(
     project.builds,
-    in_processes: MAX_THREADS,
+    in_processes: Circlarify::Config.instance.parallelism,
     finish: lambda do |_, _, result|
       download_progress_bar.increment if download_progress_bar
       # This block runs in the main thread each time a parallel block returns
