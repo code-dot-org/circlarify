@@ -71,7 +71,7 @@ begin
   # For now, limit this tool to searching for UI test failures
   Parallel.each(
     project.builds,
-    in_processes: Config.instance.parallelism,
+    in_processes: Circlarify::Config.instance.parallelism,
     finish: lambda do |_, _, result|
       download_progress_bar.increment if download_progress_bar
       # This block runs in the main thread each time a parallel block returns
