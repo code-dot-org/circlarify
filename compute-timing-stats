@@ -36,7 +36,7 @@ def main(project, options)
       end
 
       builds.push(
-        time: build.start_time,
+        time: build.start_time.to_time,
         steps: build_steps
       )
     end
