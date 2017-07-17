@@ -51,7 +51,8 @@ class CircleProject
     body = download_build_body build_num
     return nil unless body
     build_summary = JSON.parse(body)
-    if build_summary && %w(finished not_run).include?(build_summary['lifecycle'])
+    if build_summary &&
+       %w[finished not_run].include?(build_summary['lifecycle'])
       save_build_to_cache build_num, body
     end
     build_summary
