@@ -57,7 +57,7 @@ module Circlarify
     end
 
     def start_time
-      Time.parse(@info['start_time'])
+      DateTime.parse(@info['start_time'])
     rescue => _
       nil
     end

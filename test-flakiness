@@ -90,7 +90,7 @@ begin
     next unless build.branch? options[:branch_name]
 
     begin
-      build_date = Date.parse(build.start_time.to_s) # Ugh - clean up
+      build_date = build.start_time
       puts "#{build.build_num} #{build_date}" if options.verbose
       output = build.get_log(CONTAINER, STEP_NAME, options.verbose)
       full_output_string = output[0]['message']
