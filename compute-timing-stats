@@ -132,9 +132,11 @@ def main(project, options)
 
     puts "\nAverage build times for steps"
     puts format('%8s %9s %s', 'Duration', 'Container', 'Name')
-    step_durations
+    step_durations = step_durations
       .map { |key, durations| [key, mean(durations)] }
       .sort { |a, b| b[1] <=> a[1] }
+    step_durations = step_durations[0..(options[:top_n] - 1)] if options[:top_n]
+    step_durations
       .each do |step|
         puts format('%s %s', ms_to_readable_duration(step[1]), step[0])
       end
@@ -185,6 +187,10 @@ OptionParser.new do |opts|
   end
   opts.on('--plot', 'Display results as a graph.') do
     options[:output_format] = :plot
+  end
+  opts.on('-n', '--top_n n', Integer,
+          'Limit output to show only the n longest steps.') do |n|
+    options[:top_n] = n
   end
 
   project.provide_cli_options opts
