@@ -47,8 +47,8 @@ def main(project, options)
                          .sort { |a, b| b[1] <=> a[1] }
 
     js_data = "[\n"
-    column_names = average_step_times.map { |k| JSON.generate(k[0]) }
-    js_data += "['Date', #{column_names.join(', ')}],\n"
+    js_data += JSON.generate(['Date'] + average_step_times.map { |k| k[0] })
+    js_data += ",\n"
     builds.each do |build|
       # Represent date as a JS date, constructed with ms since the epoch
       js_build_time = "new Date(#{build[:time].to_f * 1000})"
