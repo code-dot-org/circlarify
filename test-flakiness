@@ -97,7 +97,7 @@ begin
 
       # Find every time a test we care about was started
       test_starts = full_output_string
-                    .scan(/cucumber.*--out (\w+)_output\.html/)
+                    .scan(/cucumber.*--out log\/(\w+)_output\.html/)
                     .map { |matches| matches[0] }
                     .select do |name|
                       options[:test_name_filter].nil? ||
