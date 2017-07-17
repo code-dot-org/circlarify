@@ -49,8 +49,10 @@ class CircleProject
     # Download the build, parse it, and save it to the local cache if the
     # build outcome is determined
     body = download_build_body build_num
+    return nil unless body
     build_summary = JSON.parse(body)
-    if build_summary && !build_summary['outcome'].nil?
+    if build_summary &&
+       %w[finished not_run].include?(build_summary['lifecycle'])
       save_build_to_cache build_num, body
     end
     build_summary
