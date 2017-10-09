@@ -117,11 +117,7 @@ class CircleProject
   # @return [Array<build_descriptor:Object>] 30 most recent build descriptors
   # from the CircleCI API, in reverse-chronological order.
   def recent_builds
-    begin
-      JSON.parse(open(with_token(@project_api_base)).read)
-    rescue
-      []
-    end
+    JSON.parse(open(with_token(@project_api_base)).read)
   end
 
   # @return [Integer] The most recent build number in the project
