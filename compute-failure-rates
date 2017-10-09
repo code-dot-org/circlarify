@@ -169,7 +169,7 @@ elsif options[:output_format] == :plot
 
   title = "Circle CI #{options[:branch]} builds by outcome for "\
     "#{dates.min.strftime('%Y-%m-%d')}..#{dates.max.strftime('%Y-%m-%d')} "\
-    "(builds #{project.build_range})"
+    "(builds #{project.restricted_build_range})"
 
   # Write out plot
   # https://developers.google.com/chart/interactive/docs/gallery/areachart

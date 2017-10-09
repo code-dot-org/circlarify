@@ -65,6 +65,8 @@ module Circlarify
         last = api.latest_build_num
         first = last - 29
       end
+      @latest = last
+      @earliest = first if @earliest.nil?
       first..last
     end
 
@@ -73,8 +75,22 @@ module Circlarify
     # @return [Array<build_descriptor:Object>] set of found build descriptors
     #   in given range.
     def builds(ensure_full_summary = false)
-      api.get_builds(build_range, ensure_full_summary)
+      ret = api.get_builds(build_range, ensure_full_summary)
          .map { |info| Build.new(api, info) }
+      earliest = nil
+      ret = ret.select do |build|
+        next false if @arguments.after_date && build.queued_at && build.queued_at < @arguments.after_date
+        next false if @arguments.before_date && build.queued_at && build.queued_at > @arguments.before_date
+        earliest = build if build.queued_at && (earliest.nil? || build.build_num < earliest.build_num)
+        true
+      end
+      @earliest = earliest.build_num
+      ret
+    end
+
+    def restricted_build_range
+      return 0..0 if @earliest.nil? || @latest.nil?
+      @earliest..@latest
     end
 
     # Mix global configuration options into the option parser.
@@ -101,9 +117,21 @@ module Circlarify
         @arguments.after = n
       end
 
+      opts.on('-s', '--after-date date', String,
+              'Only include builds after date. Must still be within the range' +
+              'specififed by --before and --after.') do |d|
+        @arguments.after_date = DateTime.parse(d)
+      end
+
       opts.on('-b', '--before BuildNumber', Integer,
               'Last build to include in build range.') do |n|
         @arguments.before = n
+      end
+
+      opts.on('-e', '--before-date date', String,
+              'Only include builds before date. Must still be within the range' +
+              'specififed by --before and --after.') do |d|
+        @arguments.before_date = DateTime.parse(d)
       end
 
       opts.on('-c', '--count BuildCount', Integer,
