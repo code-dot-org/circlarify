@@ -13,7 +13,7 @@ require 'pp'
 Groupdate.time_zone = 'Pacific Time (US & Canada)'
 
 CONTAINER = 0
-STEP_NAME = 'run_ui_tests'.freeze
+STEP_NAME = 'run ui tests'.freeze
 
 project = Circlarify::Project.new
 

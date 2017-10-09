@@ -20,6 +20,8 @@ class CircleProject
   def initialize(repository)
     @project_web_base = "#{GITHUB_PROJECT_WEB_BASE}/#{repository}"
     @project_api_base = "#{GITHUB_PROJECT_API_BASE}/#{repository}"
+    @cached_gets = 0
+    @total_gets = 0
   end
 
   def build_url(build_num)
@@ -32,8 +34,11 @@ class CircleProject
   # @return [Object] build descriptor object from the CircleCI API
   #   Example output JSON: https://gist.github.com/bcjordan/02f7c2906b524fa86ec75b19f9a72cd2
   def get_build(build_num, ensure_full_summary = false)
+    @total_gets += 1
+    cached = cached?(build_num)
+    @cached_gets += 1 if cached
     # First, check local cache
-    return cached_build(build_num) if cached?(build_num)
+    return cached_build(build_num) if cached
 
     # Second, try pulling from the build summary
     unless ensure_full_summary
@@ -130,11 +135,13 @@ class CircleProject
     raise ArgumentError unless range.is_a?(Enumerable)
 
     # Download the build information we need in parallel
-    Parallel.map(
+    builds = Parallel.map(
       range,
       progress: "Downloading #{range.min}..#{range.max}",
-      in_processes: Circlarify::Config.instance.parallelism
+      in_threads: Circlarify::Config.instance.parallelism
     ) { |n| get_build(n, ensure_full_summary) }
+    puts "#{@cached_gets} of #{@total_gets} cached"
+    builds
   end
 
   memoize :get_build
