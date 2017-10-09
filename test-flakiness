@@ -46,6 +46,13 @@ OptionParser.new do |opts|
     options.group_by = t
   end
 
+  opts.on(
+    '-t',
+    'Sort by time instead of flakiness'
+  ) do
+    options.sort_by_time = true
+  end
+
   opts.on('--verbose') do
     options.verbose = true
   end
@@ -65,7 +72,9 @@ begin
   ].compact.join(' ')
 
   puts 'Scanning logs...'
-  download_progress_bar = ProgressBar.create(total: project.build_range.size) unless options.verbose
+  unless options.verbose
+    download_progress_bar = ProgressBar.create(total: project.build_range.size)
+  end
 
   test_stats_rollup = {}
   # For now, limit this tool to searching for UI test failures
@@ -79,15 +88,21 @@ begin
       result.each do |test_name, stats|
         test_stats_rollup[test_name] ||= {
           started: [],
-          failed: []
+          failed: [],
+          time: [],
         }
         test_stats_rollup[test_name][:started].concat(stats[:started])
         test_stats_rollup[test_name][:failed].concat(stats[:failed])
+        test_stats_rollup[test_name][:time].concat(stats[:time])
       end
     end
   ) do |build|
     # Skip this build if it's not on the requested branch
     next unless build.branch? options[:branch_name]
+
+    # Skip this build if it failed. While it may have failed due to flakes, we
+    # don't want to count legitmate failures as flakes
+    next if build.failed?
 
     begin
       build_date = build.start_time
@@ -97,7 +112,7 @@ begin
 
       # Find every time a test we care about was started
       test_starts = full_output_string
-                    .scan(/cucumber.*--out log\/(\w+)_output\.html/)
+                    .scan(/cucumber.*--out log\/(\S+)_output\.html/)
                     .map { |matches| matches[0] }
                     .select do |name|
                       options[:test_name_filter].nil? ||
@@ -106,7 +121,7 @@ begin
 
       # Build a metadata map of tests
       tests = test_starts.each_with_object({}) do |name, sums|
-        sums[name] ||= { started: [], failed: [] }
+        sums[name] ||= { started: [], failed: [], time: [] }
         sums[name][:started].push(build_date)
       end
 
@@ -118,10 +133,21 @@ begin
           tests[name][:failed].push(build_date) if tests[name]
         end
 
+      # Find all completions, add the times to our data
+      full_output_string
+        .scan(/\[\S+\] UI tests for (\S*) .* \((\S+) minutes/)
+        .each do |name, time|
+          tests[name] ||= { started: [], failed: [], time: [] }
+          parts = time.split(':')
+          if tests[name]
+            tests[name][:time].push(parts[0].to_i * 60 + parts[1].to_i)
+          end
+        end
+
       # 3. Report back to main thread:
       tests
     rescue => e
-      STDERR.puts e.message if options.verbose
+      STDERR.puts e if options.verbose
     end
   end
   download_progress_bar.finish if download_progress_bar
@@ -133,9 +159,14 @@ end
 def flakiness_for_whole_sample(test_stats)
   start_count = test_stats[:started].size
   failure_count = test_stats[:failed].size
+  time = -1
+  if test_stats[:time].any?
+    time = test_stats[:time].inject(:+) / test_stats[:time].size
+  end
   {
     flakiness: failure_count.to_f / start_count,
-    sample_size: start_count
+    sample_size: start_count,
+    time: time,
   }
 end
 
@@ -158,13 +189,21 @@ if options.group_by
     pp flakiness_by_period(stats, options.group_by)
   end
 else
+  sort_key = options.sort_by_time ? :time : :flakiness
   test_stats_ordered = test_stats_rollup
                        .map { |k, v| [k, flakiness_for_whole_sample(v)] }
-                       .sort { |a, b| b[1][:flakiness] <=> a[1][:flakiness] }
-  puts 'Flake    n Test Name'
+                       .sort { |a, b| b[1][sort_key] <=> a[1][sort_key] }
+  puts 'Flake  Time     n Test Name'
   test_stats_ordered.each do |row|
-    puts format('%1.3f %4d %s',
+    time = '--:--'
+    if row[1][:time] != -1
+      minutes = row[1][:time] / 60
+      seconds = row[1][:time] % 60
+      time = format('%02d:%02d', minutes, seconds)
+    end
+    puts format('%1.3f  %s %4d %s',
                 row[1][:flakiness],
+                time,
                 row[1][:sample_size],
                 row[0])
   end
