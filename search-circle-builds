@@ -7,8 +7,8 @@ require 'parallel'
 require_relative './lib/config'
 require_relative './lib/project'
 
-RUN_UI_TESTS_STEP_STRING = 'run_tests'.freeze
-RUN_UI_TESTS_CONTAINER = 1
+RUN_UI_TESTS_STEP_STRING = 'run_ui_tests'.freeze
+RUN_UI_TESTS_CONTAINER = 0
 
 KNOWN_FAIL_TYPES = [
   {
