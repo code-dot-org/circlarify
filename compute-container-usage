@@ -1,0 +1,167 @@
+#!/usr/bin/env ruby
+# A script to analyze a range of CircleCI builds for container usage
+require 'fileutils'
+require 'launchy'
+require 'optparse'
+require 'time'
+require 'pp'
+require_relative './lib/project'
+
+OUTPUT_DIRECTORY = File.expand_path('~/.circle-cli/output').freeze
+
+def main(project, options)
+  include_queue = options[:include_queue]
+
+  # Download and format the information we need
+  raw_builds = project.builds(true)
+  start_stops = []
+  queue_times = []
+  raw_builds.each do |build|
+    next if build.build_time_millis.nil?
+    start_time = build.start_time.to_time
+    end_time = start_time + build.build_time_millis / 1000
+    queued_at = build.usage_queued_at.to_time
+    queued_at = start_time if start_time < queued_at
+    start_stops += [
+      {
+        build_num: build.build_num,
+        type: :start,
+        time: start_time,
+      },
+      {
+        build_num: build.build_num,
+        type: :stop,
+        time: end_time
+      },
+    ]
+    if include_queue && start_time - queued_at > 60
+      start_stops += [
+        {
+          build_num: build.build_num,
+          type: :queued,
+          time: queued_at,
+        },
+        {
+          build_num: build.build_num,
+          type: :dequeued,
+          time: start_time,
+        },
+      ]
+    end
+  end
+
+  start_stops = start_stops.sort_by do |start_stop|
+    start_stop[:time]
+  end
+  current = 0
+  previous = 0
+  current_queue = 0
+  previous_queue = 0
+  usage = start_stops.map do |start_stop|
+    previous = current
+    previous_queue = current_queue
+    if start_stop[:type] == :queued
+      current_queue += 1
+    elsif start_stop[:type] == :dequeued
+      current_queue -= 1
+    elsif start_stop[:type] == :start
+      current += 1
+    else
+      current -= 1
+    end
+    # Until :time, the container usage was `previous` and the queue depth was
+    # `previous_queue`
+    { time: start_stop[:time], usage: previous, queue: previous_queue }
+  end
+
+  js_data = if include_queue
+              "[\n['Time', 'Usage', 'Queue'],\n"
+            else
+              "[\n['Time', 'Usage'],\n"
+            end
+  usage.each do |u|
+    js_build_time = "new Date(#{u[:time].to_f * 1000})"
+    js_data += if include_queue
+                 "[#{js_build_time}, #{u[:usage]}, #{u[:queue]}],\n"
+               else
+                 "[#{js_build_time}, #{u[:usage]}],\n"
+               end
+  end
+  js_data += "]\n"
+
+  title = "Circle CI container usage for builds #{project.restricted_build_range}"
+
+  # Write out plot
+  # https://developers.google.com/chart/interactive/docs/gallery/areachart
+  FileUtils.mkdir_p OUTPUT_DIRECTORY
+  path = "#{OUTPUT_DIRECTORY}/container-usage.html"
+  File.open(path, 'w') do |file|
+    file.write <<-FILE
+<html>
+<head>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript">
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
+
+    function drawChart() {
+      var data = google.visualization.arrayToDataTable(#{js_data});
+
+      var options = {
+        title: '#{title}',
+        hAxis: {title: 'Build date',  titleTextStyle: {color: '#333'}},
+        vAxis: {title: 'Container usage', minValue: 0},
+        explorer: {},
+      };
+
+      var chart = new google.visualization.SteppedAreaChart(document.getElementById('chart_div'));
+      chart.draw(data, options);
+    }
+  </script>
+</head>
+<body>
+  <div id="chart_div" style="width: 100%; height: 900px;"></div>
+</body>
+</html>
+    FILE
+  end
+  Launchy.open(path)
+rescue ArgumentError => e
+  puts e.message
+  exit(-1)
+end
+
+# Begin here: Parse command line options
+project = Circlarify::Project.new
+options = {
+  container_num: 0,
+  output_format: :human_readable
+}
+OptionParser.new do |opts|
+  opts.banner = 'Usage: ./compute-container-usage [options]'
+
+  opts.on('--branch BranchName',
+          String,
+          'Limit results to builds for one branch.') do |branch_name|
+    options[:branch_name] = branch_name
+  end
+  opts.on('--step StepPattern',
+          'Filter results to steps matching given pattern.') do |step_pattern|
+    options[:step_pattern] = Regexp.new(step_pattern, Regexp::IGNORECASE)
+  end
+  opts.on('--container ContainerNum',
+          'Show results from a different container (default 0).') do |num|
+    options[:container_num] = num.to_i
+  end
+  opts.on('--plot', 'Display results as a graph.') do
+    options[:output_format] = :plot
+  end
+  opts.on('--queue', 'Include queue depth in the graph.') do
+    options[:include_queue] = true
+  end
+
+  project.provide_cli_options opts
+end.parse!
+
+main(project, options)
+exit(0)

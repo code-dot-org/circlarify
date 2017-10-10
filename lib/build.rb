@@ -56,6 +56,12 @@ module Circlarify
       nil
     end
 
+    def usage_queued_at
+      DateTime.parse(@info['usage_queued_at'])
+    rescue => _
+      nil
+    end
+
     def start_time
       DateTime.parse(@info['start_time'])
     rescue => _
