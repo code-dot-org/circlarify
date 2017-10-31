@@ -160,7 +160,7 @@ end
 
 # Get the average of the values in an array
 def mean(array)
-  array.inject(:+).to_f / array.size
+  array.compact.inject(:+).to_f / array.size
 end
 
 # Begin here: Parse command line options
